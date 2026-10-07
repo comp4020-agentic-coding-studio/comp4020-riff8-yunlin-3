@@ -92,7 +92,9 @@ Plain `node:http` server run directly from `.ts` (Node 24 strips types),
 
 - Commit small and often, one idea per commit. Run `pnpm check` (with the app
   running) first and commit only when it exits 0 --- gate on the command's own
-  exit code, never on a pipe into `grep`. Push `main` after each green commit
+  exit code, never on a pipe into `grep` or a `;` chain. The server reads
+  `README.md` and `docs/adr/` once at startup: restart it after editing
+  them, or the README check fails against stale text. Push `main` after each green commit
   (in a pod run the harness pushes when the run stops instead). Never commit
   or push on red; fix or revert first. Never commit secrets.
 - After any UI or layout change, open the running app in a real browser

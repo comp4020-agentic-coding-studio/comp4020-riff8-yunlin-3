@@ -18,9 +18,57 @@ A stranger opens the scroll on their phone while someone else has it open on a
 laptop. The first writes a line; the second sees it appear, inked in, within
 about a second, with no reload. Each of them has a seal they chose by meaning,
 and an ink colour from a small palette of traditional pigments. The page opens
-like a folding fan and reads as silk-mounted scroll painting with pine and
-rock, not a web form. Everything still works with JavaScript off, at 1920x1080
+like a folding fan and reads as a silk-mounted hanging scroll holding a
+watercolour painting of spruce and granite, not a web form. Everything still works with JavaScript off, at 1920x1080
 and 390x844, with no horizontal scroll.
+
+## Running to-do list: your working memory
+
+You will run for a long time with a limited budget and may be cut off at any
+point. Keep a running list so you never lose the thread, and so that whatever
+state you stop in is honest and deployable.
+
+- Your first commit creates `TODO.md` at the repo root (after the `CLAUDE.md`
+  working agreement). It has four parts: **Now** (the one task in progress),
+  **Next** (ordered, each tagged P0 to P3), **Done** (with the commit hash),
+  and **Context** (decisions made, gotchas found, file locations, anything a
+  fresh you would need after a context reset). Re-read it at the start of every
+  task; update it in the same commit as the work.
+- Prioritise by value for the brief under the time limit:
+  - **P0** the brief's fixed spec: live append within ~1 s, reconnect, the ADR,
+    docs consistent with `spec/`. Nothing else matters if this is not done.
+  - **P1** seal chooser with the two-way dictionary, ink palette.
+  - **P2** ink-in typing, lantern launch, mount layout and cloth, the watercolour
+    painting.
+  - **P3** fan opening and extras.
+- Time-box: if one task has eaten roughly a quarter of your effort or failed
+  twice, cut its scope, write what remains into `TODO.md`, and move on.
+  A smaller thing that works beats a bigger thing half done.
+- After every task `main` must be green and deployable and `TODO.md` accurate.
+  If you are about to run out, stop starting new work and spend the remainder
+  on making `TODO.md`, the README, the ADR and the tests agree with reality.
+- Your last commit leaves `TODO.md` in place (it is the hand-off to whoever
+  picks the repo up next) with every unfinished item marked as not done. Delete
+  only `prompt.md`.
+- You are encouraged to add features of your own once the P0 to P2 items are
+  done, if they fit the theme (see "Extras" after Tier 3). Add each to
+  `TODO.md` with a one-line reason before you start it.
+
+Seed `TODO.md` with these, in this order:
+
+- [ ] P0 `CLAUDE.md` working agreement, `TODO.md`
+- [ ] P0 SSE live append + `Last-Event-ID` reconnect + tests (item 1)
+- [ ] P0 DB migration + seal/ink columns, tested on a populated database
+- [ ] P0 ADR 0001 + README/CLAUDE.md consistency (item 3)
+- [ ] P1 dictionary + English to Chinese chooser, atomic claims (item 2)
+- [ ] P1 Chinese to English reveal + legend (item 2)
+- [ ] P1 ink palette + contrast and seal-distance tests (item 4)
+- [ ] P2 ink-in typing (item 5)
+- [ ] P2 lantern launch (item 6)
+- [ ] P2 theme: mount, cloth, tokens (item 7)
+- [ ] P2 watercolour painting + header wash (item 8)
+- [ ] P3 fan opening (item 9)
+- [ ] P3 extras
 
 ## Do these in order. Stop after any tier if you run short. A coherent partial result beats a broken whole.
 
@@ -202,9 +250,16 @@ Georgia) so every page, including `/readme/`, feels like one object.
 - Make the page a hanging-scroll mount: top and bottom rollers, a silk mount
   border in a contrasting cloth, the painting as a panel inside it. Colophons
   sit like inscriptions on the mount.
-- Leave generous empty space; add a few layered mountain silhouettes in
-  grey and restrained celadon washes behind the header. A vertical-rl accent
-  for the title "題記" is welcome; keep entries horizontal for reading.
+- Leave generous empty space. Behind the header, a faint, misty crop of the
+  watercolour from item 8, faded to paper at its edges and kept light enough
+  that header text stays at 4.5:1. A vertical-rl accent for the title "題記"
+  is welcome; keep entries horizontal for reading.
+- Colour tokens come from the painting, not from stock greens: `--spruce
+  #3d5a3a` (deep green), `--moss #7b9a5a`, `--granite #8a8378` (warm grey),
+  `--clay #b79d7c` (earth path), pale overcast sky `#e6e9e4`; paper stays
+  `#f3ede1`. The mount silk is a moss green (about `#61785a`) rather than
+  celadon blue-grey. These are scenery tokens: they never colour a visitor's
+  text, never mean "yours", and are separate from the ink palette and `--seal`.
 - Restyle the stock blue and purple links to ink tones.
 - Cloth texture, all CSS and inline SVG, no raster assets: faint warp-and-weft
   weave from two `repeating-linear-gradient` layers; a small tiled
@@ -216,14 +271,34 @@ Georgia) so every page, including `/readme/`, feels like one object.
   transforms and opacity. Drop the texture under `prefers-contrast: more` and
   in print. Use `rem` tile sizes so it holds at both viewports.
 
-**8. Pine and rock.** Hand-build pine and rock illustrations as inline SVG in
-the style of Ni Zan, who painted the pine and rock in this very scroll: sparse,
-dry-brush. Pine: twisting trunk with bark strokes, needle clusters as dark
-ink ellipses with radiating strokes. Rock: angular forms with texture strokes
-(cun) and a light ink wash. Place a pine in a header corner, rock at the base,
-small clusters as section dividers, and a tiny rock beside the writing form.
-Decorative only: `aria-hidden`, no text. At 390 px scale down or drop extras so
-nothing causes horizontal scroll.
+**8. The watercolour painting: spruce, granite and a path.** The painting inside
+the scroll is a watercolour of a forest, built by you as inline SVG. A
+photographic reference existed (a Nordic spruce forest with granite boulders);
+you do not have it, so paint from this description.
+- Composition, portrait like a hanging scroll (viewBox about 820 x 1230): tall,
+  dark spruces on the left, centre and right against a pale overcast sky; a
+  stack of weathered granite boulders in the middle distance; one large mossy
+  boulder, lower right, with grass tufts along its top; a pale earth path with
+  exposed roots curving in from the lower left; a soft, blurred boulder across
+  the bottom edge as foreground. Hazy, quiet, a little cool.
+- Watercolour technique in SVG: layered translucent fills with
+  `mix-blend-mode: multiply` so washes darken where they overlap; darker pooled
+  edges (a low-opacity stroke along shape rims); one `feTurbulence` +
+  `feDisplacementMap` on the painting group only, for wet, ragged edges; paper
+  grain from a tiled tile; and an unpainted ragged border where the wash stops
+  short of the paper. Spruce as stacked, drooping tiers of translucent green;
+  boulders as angular washes with a few dry-brush texture strokes (the Ni Zan
+  manner that the scroll's own README names); granite in `--granite`, moss
+  caps in `--moss`, the path in `--clay`.
+- Budget: one inline SVG, no raster file, no external image, about 25 KB or
+  less. It carries `role="img"` with a plain-language `aria-label`. Show it
+  centred, `max-height: 34rem` on desktop and full width on mobile, with open
+  paper either side, the way a hanging scroll leaves the painting small inside
+  a long mount.
+- Reuse small pieces of it (a spruce, a boulder) as dividers, a header corner
+  and a tiny rock beside the writing form. Decorative pieces are `aria-hidden`.
+  At 390 px scale down or drop extras so nothing causes horizontal scroll.
+- Text never sits on the painting. Entries and the form stay on plain paper.
 
 ### Tier 3: only if there is time
 
@@ -237,6 +312,24 @@ the animation ends so nothing stays clipped. Content stays in the DOM and
 readable throughout. Skip under `prefers-reduced-motion`. Do not replay it
 after every posted colophon: gate it to once per browser session with a small
 external script file (`sessionStorage`); with JS off it plays each load.
+
+### Extras: only after P0 to P2 are done and green
+
+If you have time, add small things of your own that belong to this world. Each
+must be on theme, tested if it has behaviour, free of new dependencies,
+respectful of `prefers-reduced-motion`, and written into `TODO.md` first. Ideas
+you may take or ignore:
+- **Fresh ink:** a newly arrived entry looks wet (a faint sheen and slightly
+  deeper colour) and dries to its final ink over ~8 s.
+- **Seal press:** the seal stamps down into the paper when an entry lands.
+- **Mist:** very slow, low-contrast drift of mist across the painting, CSS only.
+- **Cairn:** a small decorative stack of stones beside the path whose height
+  tracks the number of colophons. It is a count, never a list of people.
+- **Time of day:** the painting's sky tint follows the visitor's local hour,
+  computed in the browser, nothing sent anywhere.
+- **Print:** a print stylesheet that lays the scroll out as a clean page.
+Never add anything that is a feed, presence, an identity or an edit: the
+harness and the "Leave alone" list still win over any idea of yours.
 
 ## Working agreement: write this into `CLAUDE.md` first
 
@@ -283,6 +376,8 @@ commit it. Keep it short; `CLAUDE.md` is context for every future session.
 - **Data safety:** the SQLite file lives on persistent storage. Migrations are
   idempotent and tested against a database that already has rows. Never drop
   or rewrite existing colophons.
+- **Running to-do list:** `TODO.md` is the working memory described above;
+  update it in the same commit as the work it records.
 - **Keep docs consistent:** a claim in `README.md`, `CLAUDE.md`, the ADR and
   `spec/` must hold in all of them; if you change one, change the others in
   the same commit.
@@ -311,4 +406,5 @@ commit it. Keep it short; `CLAUDE.md` is context for every future session.
 - Checked at 1920x1080 and 390x844: no horizontal scroll, controls reachable,
   nothing clipped.
 - `main` is deployable after every commit; commit small, with clear messages.
+- `TODO.md` is accurate and left in place, unfinished items marked not done.
 - Delete `prompt.md` in your last commit.

@@ -18,6 +18,7 @@ RUN pnpm install --prod --frozen-lockfile
 COPY src ./src
 COPY public ./public
 COPY README.md ./
+COPY docs ./docs
 
 EXPOSE 8080
 CMD ["node", "src/server.ts"]

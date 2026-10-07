@@ -48,22 +48,35 @@ and a fan opening. Small, quiet, finished; not a platform.
 Plain `node:http` server run directly from `.ts` (Node 24 strips types),
 `node:sqlite`, no framework, one runtime dependency (`marked`, for `/readme/`).
 
-- `src/server.ts` --- routes, request-body cap, static files under `/public/`
-- `src/db.ts` --- opens the SQLite file (`/data` on Fly) and the queries
+- `src/server.ts` --- routes (`/`, `/colophons`, `/events`, `/seal`,
+  `/readme/`, `/adr/0001-seal-claims/`), request-body cap, static files
+- `src/db.ts` --- opens the SQLite file (`/data` on Fly), colophon and seal
+  claim queries
+- `src/migrate.ts` --- idempotent schema migration, run on every boot
+- `src/live.ts` --- server-sent events: stream cap, keepalive, broadcast,
+  `Last-Event-ID` replay
 - `src/render.ts` --- every HTML page as template strings
+- `src/dictionary.ts` --- the curated seal dictionary and English search
+- `src/seal.ts` --- hash-glyph fallback and which seal an entry or visitor has
+- `src/ink.ts` --- the fixed ink palette
 - `src/html.ts` --- `escapeHtml`
-- `src/seal.ts` --- the hash-glyph fallback seal
 - `src/cookies.ts` --- the anonymous `seal` token cookie
-- `src/markdown.ts` --- README to HTML
+- `src/markdown.ts` --- README and ADR to HTML
+- `public/app.js` --- progressive enhancement: live append
+- `public/fan.js` --- fan-opening gate
 - `public/styles.css` --- the whole theme
 - `public/scroll.avif` --- the Wang Yi handscroll photograph
 - `public/favicon.svg`
+- `docs/adr/` --- decision records, served under `/adr/`
 
 ## Design tokens
 
 - `--paper` `#f3ede1` the sheet everything is written on
 - `--ink` / `--ink-soft` body text and secondary text
 - `--seal` `#a8402c` means only "this colophon is yours"; nothing else is red
+- ink palette (`src/ink.ts`, classes `ink--<key>`): `mo-lan` `#2a4f9a`
+  default, `dian-qing` `#1f3a6e`, `shi-lu` `#2f6b57`, `zi` `#6a3a5c`, `mo`
+  `#2b2721`; only ever a visitor's own text
 
 ## Working agreement
 
@@ -94,9 +107,19 @@ Rules for working on Colophon, derived from what `README.md` argues good means
 here. If a change would break one of these, the argument in `README.md` is
 what has to change first, in the same commit.
 
-- Never add an account, profile, avatar, name field, like, reply, thread or
-  notification. A visitor is their seal (an anonymous per-browser token) and
-  nothing else.
+- Never add an account, profile, avatar, name field, like, reply, thread,
+  notification, presence or typing indicator. A visitor is their seal and
+  nothing else: an anonymous per-browser token, signing with its hash glyph
+  or one seal chosen from `src/dictionary.ts`. Never accept free-text seals
+  or transliterate input; that's a name field in disguise.
+- A seal claim is decided by the `seal_claims` UNIQUE constraints, never a
+  check-then-insert; each colophon snapshots its seal and ink, and changing
+  seals never rewrites an old row (`docs/adr/0001-seal-claims.md`).
+- Only a confirmed colophon is broadcast, from the same code path that
+  inserts it, after the insert. Drafts never leave the visitor's page.
+- Inks are posted as palette keys and rendered as `ink--<key>` classes.
+  Never accept a colour value and never put visitor input in a `style`
+  attribute.
 - Never add a way to edit or delete a colophon after it's written, and never
   auto-truncate one that's too long — reject it at the boundary and ask the
   visitor to shorten it themselves. Silent mutation of what someone wrote is

@@ -35,24 +35,53 @@ Three other things I read while deciding what small and good looks like here:
   for any individual score — there is no score here, no likes, nothing to
   win, only the quality of what gets left behind.
 
+## A seal by meaning, an ink from a palette
+
+A visitor signs with a seal. If they never think about it, their browser is
+given one of twelve collectors' characters at random. If they want to, they
+can [choose one by meaning](/seal): type an English word ("keep",
+"mountain", "remember") and pick from the characters in a small curated
+dictionary that mean it. Tap any seal on the scroll to read what it means.
+They also choose the ink they write in, from five traditional pigments.
+
+Neither is a name. The chooser only offers characters from the dictionary,
+found by an English word; it never accepts free text and never transliterates
+what someone types, so nobody can spell themselves out. An ink is one of five
+fixed colours, posted as a key and rendered as a class. A seal says what
+someone cares about, the way collectors' seals often did, not who they are.
+Each seal belongs to one visitor at a time, first come, and each line keeps
+the seal and ink it was written with; the reasoning and what it costs are in
+[ADR 0001](/adr/0001-seal-claims/).
+
+## Several people at once
+
+A line written anywhere appears on every open copy of the page within about
+a second, with no reload. Only confirmed lines travel: nothing anyone types
+is sent until they press "Write it in", so there's no typing indicator and
+no list of who else is here. A page that loses its connection catches up on
+exactly what it missed when it reconnects. The same ADR records why drafts
+stay private and what that quiet costs.
+
 ## What I chose not to build
 
-No accounts, avatars or profiles — a visitor is only the anonymous seal their
-browser is given on first visit, the same way a real seal marks presence
+No accounts, avatars or profiles --- a visitor is only their seal, held by an
+anonymous token in their browser, the same way a real seal marks presence
 without disclosing a name. No editing or deleting a colophon once it's
 written: ink doesn't come back off the paper, and a length limit (320
 characters) is the constraint that keeps a visitor considering a line rather
-than typing a paragraph. No likes, no replies, no threading, no feed of other
-people's activity, no notifications. Real-time and a place to write down one
-decision about several people at once both belong to the next two crits, not
-this one; this week is the smallest version of the object itself.
+than typing a paragraph. No likes, no replies, no threading, no
+notifications, no presence. The only live thing is a confirmed line arriving.
 
 ## What's enforced, what's judged
 
 `spec/` checks that a colophon written now is still there on the next
 request, that a visitor's own colophons are the ones marked as theirs (and
 nobody else's are), and that an empty or over-length line is rejected rather
-than silently corrupted. Whether the tone of what accumulates actually reads
-like a colophon — considered, brief, worth adding to a shared object — rather
-than chat is not something a test can check; that's for whoever reads the
-margin to judge.
+than silently corrupted. It checks that a confirmed line reaches a second open
+page within a second, that a reconnect gets exactly what it missed, that two
+visitors racing for the same seal can't both win, that every seal has a
+pinyin and a meaning, that inks are only ever the five on the list, and that
+the old database upgrades without losing a line. Whether the tone of what
+accumulates actually reads like a colophon --- considered, brief, worth adding
+to a shared object --- rather than chat is not something a test can check;
+that's for whoever reads the margin to judge.

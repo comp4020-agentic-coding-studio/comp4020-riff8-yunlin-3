@@ -238,6 +238,55 @@ readable throughout. Skip under `prefers-reduced-motion`. Do not replay it
 after every posted colophon: gate it to once per browser session with a small
 external script file (`sessionStorage`); with JS off it plays each load.
 
+## Working agreement: write this into `CLAUDE.md` first
+
+Before building anything, add the following to `CLAUDE.md` in the harness
+section below the rule (leave the riff block above it exactly as it is), and
+commit it. Keep it short; `CLAUDE.md` is context for every future session.
+
+- **What this is** (put it at the top of the harness, 4 to 6 lines): Colophon
+  is a shared, anonymous, permanent margin on one Chinese handscroll painting.
+  Visitors leave one-line notes (max 320 characters) that cannot be edited or
+  deleted, signed with a seal they choose by meaning from a curated
+  English/Chinese dictionary and written in an ink from a fixed palette.
+  Confirmed notes appear on every open session within about a second. The
+  look is a silk-mounted scroll with pine and rock, ink-in typing, a lantern
+  launch and a fan opening. Small, quiet, finished; not a platform.
+- **Stack and layout:** plain `node:http` server, SQLite, no framework; list
+  the real files under `src/` and `public/` and what each is for, and update
+  that list whenever it changes.
+- **Design tokens:** list the colour tokens (`--paper`, `--ink`, `--ink-soft`,
+  `--seal`, the five ink palette keys, the lantern and mount colours) with
+  their one-line meaning, and the rule that `--seal` means only "yours".
+- **Commit and push as you go:** commit small and often, one idea per commit,
+  with a clear message. Run `pnpm check` first and commit only when it exits
+  0 (gate on the command's own exit code, never on a pipe into `grep`).
+  Push `main` after each green commit so every step is deployable and the
+  live site is never far behind. Never commit or push on red; if something
+  breaks, fix it or revert before moving on. Never commit secrets.
+- **Look at it, at both viewports:** after any UI or layout change, open the
+  running app in a real browser, take screenshots at desktop 1920x1080 and
+  mobile 390x844, and read them. Use whatever headless browser tool is
+  available in your environment (an agent browser, or Playwright as a
+  dev-only dependency). Check: no horizontal scroll, controls reachable and
+  tappable, canvas and scroll art not clipped, text legible over the cloth
+  texture, the fan and lantern animations finishing and leaving nothing
+  behind. If no browser is available, say so in the commit message and rely on
+  the jsdom tests instead; do not claim a visual check you did not do.
+- **Bugs:** when a check finds a real bug, the fix is a new `spec/` test or a
+  rule here, not only a patched line. When you are corrected, put the rule
+  here.
+- **Motion and accessibility:** every animation respects
+  `prefers-reduced-motion`; decorative art and lanterns are `aria-hidden`;
+  every control has a keyboard path and a visible focus state; text keeps 4.5:1
+  contrast on every surface it sits on.
+- **Data safety:** the SQLite file lives on persistent storage. Migrations are
+  idempotent and tested against a database that already has rows. Never drop
+  or rewrite existing colophons.
+- **Keep docs consistent:** a claim in `README.md`, `CLAUDE.md`, the ADR and
+  `spec/` must hold in all of them; if you change one, change the others in
+  the same commit.
+
 ## Leave alone
 
 - Everything in the harness: no accounts, names, profiles, likes, replies,

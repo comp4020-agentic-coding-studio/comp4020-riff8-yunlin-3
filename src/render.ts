@@ -232,7 +232,7 @@ function sealResult(entry: SealEntry, page: SealPage, ownGlyph: string | undefin
               <form method="post" action="/seal" class="claim-form">
                 <input type="hidden" name="glyph" value="${entry.glyph}" />
                 <input type="hidden" name="q" value="${escapeHtml(page.query)}" />
-                <button type="submit" aria-label="Take ${escapeHtml(sealLabel(entry))}">Take ${entry.glyph}</button>
+                <button type="submit" aria-label="Take ${entry.glyph}, ${escapeHtml(entry.pinyin)}: ${escapeHtml(entry.gloss)}">Take ${entry.glyph}</button>
               </form>
             </li>`;
 }

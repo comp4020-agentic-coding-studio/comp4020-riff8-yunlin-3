@@ -62,6 +62,30 @@ no list of who else is here. A page that loses its connection catches up on
 exactly what it missed when it reconnects. The same ADR records why drafts
 stay private and what that quiet costs.
 
+## How it looks
+
+The page is a hanging scroll: wooden rollers top and bottom, moss-green silk
+mount, and a paper panel with a gilt edge holding a small watercolour of
+spruce, granite and an earth path, painted as SVG washes rather than a
+photograph. The colours of the mount come from the painting; they never
+colour anyone's words. The only red on the page is the seal, and it means
+one thing: this line is yours.
+
+As you type, your line inks itself in, character by character, in the ink
+you chose; a deleted character blots out where it stood. Nothing you type
+leaves your page until you press "Write it in". When the scroll accepts the
+line it rises away from the button on a paper lantern, carrying your words
+and your seal, and lands in the list as the lantern goes. A refused line
+stays exactly where it was, and nothing flies. Someone else's line arriving
+sends up one small, faint lantern that carries nothing at all. The page
+opens like a folding fan once per visit (on every load, with JavaScript
+off). All of it is decoration on a plain
+form: with JavaScript off, or with reduced motion asked for, the scroll
+reads and writes the same, just without the weather.
+
+The seal dictionary was written without a Chinese reader to check it, and
+says so at the top of the file. It should be reviewed before it's trusted.
+
 ## What I chose not to build
 
 No accounts, avatars or profiles --- a visitor is only their seal, held by an

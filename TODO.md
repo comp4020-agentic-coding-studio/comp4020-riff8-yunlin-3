@@ -9,10 +9,11 @@ the same commit as the work.
 
 ## Next
 
-- [ ] P3 extras: print stylesheet (rollers, lanterns, fan and form dropped;
-  the scroll as a clean page) --- already in `styles.css`, untested
 
 ## Done
+
+- [x] P3 extras: print stylesheet (rollers, lanterns, fan and form dropped;
+  the scroll as a clean page), checked by printing `/readme/` to PDF
 
 - [x] P3 extras: fresh ink --- an arriving line looks wet and dries over
   ~8 s, so a live arrival reads as just written, not as a reload

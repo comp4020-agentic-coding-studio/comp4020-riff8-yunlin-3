@@ -5,28 +5,29 @@ the same commit as the work.
 
 ## Now
 
-- P1 ink palette contrast and seal-distance tests (item 4)
+- P2 ink-in typing (item 5)
 
 ## Next
 
-- [ ] P1 ink palette + contrast and seal-distance tests (item 4)
 - [ ] P2 ink-in typing (item 5)
 - [ ] P2 lantern launch (item 6)
-- [ ] P2 theme: mount, cloth, tokens (item 7)
-- [ ] P2 watercolour painting + header wash (item 8)
 - [ ] P3 fan opening (item 9)
 - [ ] P3 extras
 
 ## Done
 
-- [x] P0 SSE live append + `Last-Event-ID` reconnect + tests (item 1)
-- [x] P0 DB migration + seal/ink columns, tested on a populated database
-- [x] P0 ADR 0001 + README/CLAUDE.md consistency (item 3)
-- [x] P1 dictionary + English to Chinese chooser, atomic claims (item 2)
-- [x] P1 Chinese to English reveal + legend (item 2) (styling still to come
-  with the theme)
+- [x] P1 ink palette + contrast and seal-distance tests (item 4)
+- [x] P2 theme: mount, cloth, tokens (item 7)
+- [x] P2 watercolour painting + header wash (item 8)
 
-- [x] P0 `CLAUDE.md` working agreement, `TODO.md`
+- [x] P0 SSE live append + `Last-Event-ID` reconnect + tests (item 1) (a9d4284)
+- [x] P0 DB migration + seal/ink columns, tested on a populated database (a9d4284)
+- [x] P0 ADR 0001 + README/CLAUDE.md consistency (item 3) (a9d4284)
+- [x] P1 dictionary + English to Chinese chooser, atomic claims (item 2) (a9d4284)
+- [x] P1 Chinese to English reveal + legend (item 2) (a9d4284, styled in
+  the theme commit)
+
+- [x] P0 `CLAUDE.md` working agreement, `TODO.md` (fe07cb6)
 
 ## Context
 
@@ -50,3 +51,8 @@ the same commit as the work.
   legend}` or 422 `{error, message}`; the plain form gets 303s as before.
 - Seal tests release their claims so a reused local DB doesn't fill the pool.
 - Kill scratch servers by PID only; other pod runs share the machine.
+- Theme: the wall is plaster, the mount silk carries the brocade, sheets are
+  paper with a gilt edge. Fan CSS is already in `styles.css`; `fan.js` is
+  still a placeholder.
+- Decided: the Wang Yi handscroll photo stays, smaller, as "the tradition
+  this margin borrows from"; the watercolour is the mounted painting.

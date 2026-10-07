@@ -1,9 +1,40 @@
+@property --fan {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 180deg;
+}
+
 :root {
   --paper: #f3ede1;
   --ink: #2b2721;
   --ink-soft: #6b6258;
   --seal: #a8402c;
   --rule: #d8cfbd;
+
+  /* The darkest value any cloth texture reaches behind text, and the
+     lantern's paper body: every ink is checked against both
+     (spec/ink-palette.test.ts). */
+  --paper-shade: #ebe3d3;
+  --lantern-paper: #f6e6c4;
+  --lantern-glow: #f1c27a;
+
+  /* Scenery, taken from the painting. These never colour a visitor's text
+     and never mean "yours". */
+  --spruce: #3d5a3a;
+  --moss: #7b9a5a;
+  --granite: #8a8378;
+  --clay: #b79d7c;
+  --sky: #e6e9e4;
+  --silk: #61785a;
+  --silk-dark: #46593f;
+  --gilt: #b9a06a;
+  --wood-dark: #3b2817;
+  --wood: #8a6440;
+  --wood-mid: #4a3320;
+
+  /* A small silk-slub tile, tiled once and multiplied; never a live filter
+     over a large area. */
+  --slub: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.05 .9' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .2 0 0 0 0 .18 0 0 0 0 .12 0 0 0 -1.2 .62'/%3E%3C/filter%3E%3Crect width='96' height='96' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 * {
@@ -11,47 +42,181 @@
 }
 
 html {
-  background: var(--paper);
+  background: #dcd7ca;
 }
 
+/* The wall the scroll hangs on: quiet plaster, so the silk reads as cloth. */
 body {
-  margin: 0 auto;
-  max-width: 46rem;
-  padding: 1.5rem 1.25rem 4rem;
-  background: var(--paper);
+  margin: 0;
   color: var(--ink);
   font-family: Georgia, "Times New Roman", Times, serif;
   line-height: 1.55;
+  background: radial-gradient(ellipse at 50% 30%, #e4e0d4, #d3cdbe);
+  background-attachment: fixed;
 }
 
 a {
-  color: #1a4fa0;
+  color: var(--ink);
+  text-decoration-color: var(--clay);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
 }
 
 a:visited {
-  color: #5a3a91;
+  color: var(--ink);
+}
+
+a:hover {
+  color: var(--spruce);
+  text-decoration-color: var(--spruce);
+}
+
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+textarea:focus-visible,
+input:focus-visible,
+.scroll-scroller:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 h1,
-h2 {
+h2,
+h3 {
   font-weight: normal;
   line-height: 1.2;
 }
 
+/* The mount: rollers top and bottom, silk between, paper panels inside. */
+.mount {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.25rem 0 2.5rem;
+}
+
+.roller {
+  position: relative;
+  height: 1.5rem;
+  margin: 0 0.4rem;
+  border-radius: 0.3rem;
+  background: linear-gradient(var(--wood-dark), var(--wood) 35%, var(--wood-mid) 70%, var(--wood-dark));
+  box-shadow: 0 0.2rem 0.4rem rgb(0 0 0 / 30%);
+}
+
+.roller::before,
+.roller::after {
+  content: "";
+  position: absolute;
+  top: -0.25rem;
+  width: 0.9rem;
+  height: 2rem;
+  border-radius: 0.35rem;
+  background: linear-gradient(90deg, var(--wood-dark), var(--wood) 50%, var(--wood-dark));
+}
+
+.roller::before {
+  left: -0.4rem;
+}
+
+.roller::after {
+  right: -0.4rem;
+}
+
+.mount-silk {
+  margin: 0 1rem;
+  padding: 2.5rem 2.25rem;
+
+  /* Brocade: soft crease and edge shading near the rollers, a diamond
+     lattice, a fine warp and weft, and slub, on moss-green silk. */
+  background-color: var(--silk);
+  background-image:
+    linear-gradient(rgb(0 0 0 / 22%), transparent 2.5rem, transparent calc(100% - 2.5rem), rgb(0 0 0 / 22%)),
+    linear-gradient(90deg, rgb(0 0 0 / 12%), transparent 1.2rem, transparent calc(100% - 1.2rem), rgb(0 0 0 / 12%)),
+    var(--slub),
+    repeating-linear-gradient(45deg, rgb(255 255 255 / 6%) 0 1px, transparent 1px 1.1rem),
+    repeating-linear-gradient(-45deg, rgb(255 255 255 / 6%) 0 1px, transparent 1px 1.1rem),
+    repeating-linear-gradient(0deg, rgb(0 0 0 / 5%) 0 1px, transparent 1px 0.2rem),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 4%) 0 1px, transparent 1px 0.2rem);
+  background-size: auto, auto, 6rem 6rem, auto, auto, auto, auto;
+  background-blend-mode: normal, normal, multiply, normal, normal, normal, normal;
+  box-shadow: 0 0.3rem 1rem rgb(0 0 0 / 30%);
+}
+
+.sheet {
+  position: relative;
+  padding: 2.25rem 2.5rem;
+  margin: 0 0 2.5rem;
+
+  /* The paper: a faint warp and weft, kept lowest-amplitude where text sits.
+     Lines are translucent --paper-shade (#ebe3d3), so nothing behind text
+     gets darker than that. */
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(0deg, rgb(235 227 211 / 60%) 0 1px, transparent 1px 0.35rem),
+    repeating-linear-gradient(90deg, rgb(235 227 211 / 45%) 0 1px, transparent 1px 0.3rem);
+  background-size: auto;
+  box-shadow:
+    0 0 0 1px var(--gilt),
+    0 0 0 0.35rem rgb(185 160 106 / 35%),
+    0 0.2rem 0.8rem rgb(0 0 0 / 25%);
+}
+
+.sheet:last-child {
+  margin-bottom: 0;
+}
+
+.sheet--colophons {
+  max-width: 44rem;
+  margin-inline: auto;
+}
+
+/* Header, with a misty crop of the painting faded to paper behind it. */
 .site-header {
-  border-bottom: 1px solid var(--rule);
+  position: relative;
+  padding: 0.5rem 3.5rem 1.25rem 0;
   margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
+  isolation: isolate;
+}
+
+.site-header::before {
+  content: "";
+  position: absolute;
+  inset: -2.25rem -2.5rem 0;
+  z-index: -1;
+  background: url("/public/painting.svg") center 8% / 120% auto no-repeat;
+  opacity: 0.3;
+  mix-blend-mode: multiply;
+  mask-image:
+    linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent),
+    linear-gradient(#000 30%, transparent);
+  mask-composite: intersect;
 }
 
 .site-header h1 {
   margin: 0;
-  font-size: 1.9rem;
+  font-size: 2.1rem;
+  letter-spacing: 0.02em;
 }
 
 .site-header h1 a {
   color: inherit;
   text-decoration: none;
+}
+
+.site-header nav {
+  font-size: 0.95rem;
+}
+
+.title-accent {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  margin: 0;
+  writing-mode: vertical-rl;
+  font-size: 1.5rem;
+  letter-spacing: 0.3em;
+  color: var(--ink-soft);
 }
 
 .kicker {
@@ -60,14 +225,35 @@ h2 {
   font-style: italic;
 }
 
+/* The painting: small inside a long mount, open paper either side. */
+.painting {
+  margin: 0;
+  text-align: center;
+}
+
+.painting-art {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: 34rem;
+  max-height: 34rem;
+  margin: 0 auto;
+  mix-blend-mode: multiply;
+}
+
+.painting figcaption {
+  max-width: 28rem;
+  margin: 0.75rem auto 0;
+}
+
 .scroll-frame {
-  margin: 0 0 2rem;
+  margin: 0 0 1.5rem;
 }
 
 .scroll-scroller {
   overflow-x: auto;
   overflow-y: hidden;
-  height: 9rem;
+  height: 7rem;
   border: 1px solid var(--rule);
   background: #ece4d3;
 }
@@ -85,11 +271,30 @@ figcaption {
   color: var(--ink-soft);
 }
 
+.divider {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 0.6rem;
+  margin: 1.75rem 0;
+}
+
+.ornament--spruce {
+  width: 1.4rem;
+  height: 2.2rem;
+}
+
+.ornament--boulder {
+  width: 2.4rem;
+  height: 1.35rem;
+}
+
 .section-note {
   color: var(--ink-soft);
   font-size: 0.95rem;
 }
 
+/* Entries: inscriptions on plain paper, each in its writer's ink. */
 .colophon-list {
   list-style: none;
   margin: 0;
@@ -97,8 +302,9 @@ figcaption {
 }
 
 .colophon {
+  position: relative;
   display: grid;
-  grid-template-columns: 2.4rem 1fr;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
   gap: 0 0.9rem;
   padding: 0.9rem 0;
   border-bottom: 1px solid var(--rule);
@@ -106,21 +312,58 @@ figcaption {
 
 .colophon-seal {
   grid-row: span 2;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  font-size: 1.3rem;
-  color: var(--ink-soft);
-  border: 1.5px solid var(--ink-soft);
-  border-radius: 3px;
-  height: 2.2rem;
-  width: 2.2rem;
   align-self: start;
 }
 
-.colophon--mine .colophon-seal {
+.colophon-seal summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  font-size: 1.3rem;
+  line-height: 1;
+  list-style: none;
+  cursor: pointer;
+  color: var(--ink-soft);
+  border: 1.5px solid var(--ink-soft);
+  border-radius: 3px;
+}
+
+.colophon-seal summary::-webkit-details-marker {
+  display: none;
+}
+
+/* A chosen seal is a filled stamp; the random hash glyph is an outline, so
+   the two never look the same even when they share a character. */
+.seal--chosen summary {
+  color: var(--paper);
+  background: var(--ink-soft);
+}
+
+.seal-meaning {
+  position: absolute;
+  z-index: 2;
+  top: 0.4rem;
+  left: 3.1rem;
+  width: max-content;
+  max-width: min(16rem, calc(100% - 3.5rem));
+  margin: 0;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.9rem;
+  background: var(--paper);
+  border: 1px solid var(--granite);
+  box-shadow: 0 0.15rem 0.4rem rgb(0 0 0 / 15%);
+}
+
+.colophon--mine .colophon-seal summary {
   color: var(--seal);
   border-color: var(--seal);
+}
+
+.colophon--mine .seal--chosen summary {
+  color: var(--paper);
+  background: var(--seal);
 }
 
 .colophon-body {
@@ -139,34 +382,242 @@ figcaption {
   color: var(--seal);
 }
 
+/* The ink palette (src/ink.ts). A visitor's own text only; never red. */
+.ink--mo-lan {
+  --entry-ink: #2a4f9a;
+}
+
+.ink--dian-qing {
+  --entry-ink: #1f3a6e;
+}
+
+.ink--shi-lu {
+  --entry-ink: #2f6b57;
+}
+
+.ink--zi {
+  --entry-ink: #6a3a5c;
+}
+
+.ink--mo {
+  --entry-ink: #2b2721;
+}
+
+.colophon .colophon-body {
+  color: var(--entry-ink, var(--ink));
+}
+
+.colophon--arriving {
+  animation: arrive 1.2s ease-out;
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+  }
+}
+
 .empty-note {
   color: var(--ink-soft);
   font-style: italic;
 }
 
-form {
+.seal-legend {
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.seal-legend h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.seal-legend ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legend-glyph,
+.result-glyph {
+  font-size: 1.15em;
+  color: var(--ink);
+}
+
+/* Writing. */
+.write-form {
   display: grid;
   gap: 0.6rem;
-  max-width: 32rem;
+  max-width: 34rem;
 }
 
 label {
   font-size: 0.95rem;
 }
 
-textarea {
-  font: inherit;
-  font-size: 1rem;
+.inkwell {
+  position: relative;
+  --entry-ink: #2a4f9a;
+}
+
+.write-form:has(input[value="dian-qing"]:checked) .inkwell {
+  --entry-ink: #1f3a6e;
+}
+
+.write-form:has(input[value="shi-lu"]:checked) .inkwell {
+  --entry-ink: #2f6b57;
+}
+
+.write-form:has(input[value="zi"]:checked) .inkwell {
+  --entry-ink: #6a3a5c;
+}
+
+.write-form:has(input[value="mo"]:checked) .inkwell {
+  --entry-ink: #2b2721;
+}
+
+textarea,
+.inkwell-mirror {
+  width: 100%;
+  margin: 0;
   padding: 0.6rem;
+  font: inherit;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   border: 1px solid var(--ink-soft);
-  background: #fbf8f2;
-  color: var(--ink);
+}
+
+textarea {
+  display: block;
+  min-height: 5.5rem;
   resize: vertical;
+  background: #fbf8f2;
+  color: var(--entry-ink);
+}
+
+.inkwell-mirror {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-color: transparent;
+  color: var(--entry-ink);
+  pointer-events: none;
+}
+
+.inkwell--live textarea {
+  color: transparent;
+  caret-color: var(--entry-ink);
+}
+
+.inkwell--live textarea::selection {
+  color: transparent;
+  background: rgb(97 120 90 / 25%);
+}
+
+.ink-ch {
+  animation: ink-in 0.55s ease-out;
+}
+
+.ink-blot {
+  position: absolute;
+  color: var(--entry-ink);
+  animation: blot 0.7s ease-out forwards;
+}
+
+@keyframes ink-in {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+  }
+}
+
+@keyframes blot {
+  to {
+    opacity: 0;
+    filter: blur(4px);
+    transform: scale(1.6, 1.3);
+  }
+}
+
+.count {
+  margin: -0.2rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.inks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.inks legend {
+  width: 100%;
+  margin-bottom: 0.3rem;
+  padding: 0;
+  font-size: 0.95rem;
+}
+
+.swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0.3rem 0.65rem 0.3rem 0.45rem;
+  font-size: 0.9rem;
+  color: var(--entry-ink);
+  border: 1px solid var(--rule);
+  border-radius: 2rem;
+  background: #fbf8f2;
+  cursor: pointer;
+}
+
+.swatch input {
+  margin: 0;
+  accent-color: var(--entry-ink);
+}
+
+.swatch-chip {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--entry-ink);
+}
+
+.swatch:has(input:checked) {
+  border-color: var(--entry-ink);
+  box-shadow: inset 0 0 0 1px var(--entry-ink);
+}
+
+.swatch:has(input:focus-visible) {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.swatch input:focus-visible {
+  outline: none;
+}
+
+.write-actions {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
 }
 
 button {
   font: inherit;
   font-size: 1rem;
+  min-height: 2.75rem;
   padding: 0.5rem 1.1rem;
   border: 1px solid var(--ink);
   background: var(--ink);
@@ -184,8 +635,67 @@ button:hover {
   font-weight: bold;
 }
 
+.notice {
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--moss);
+}
+
+/* Seal chooser. */
+.seal-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.seal-search label {
+  width: 100%;
+}
+
+.seal-search input {
+  flex: 1 1 12rem;
+  min-height: 2.75rem;
+  padding: 0.4rem 0.6rem;
+  font: inherit;
+  border: 1px solid var(--ink-soft);
+  background: #fbf8f2;
+  color: var(--ink);
+}
+
+.seal-results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seal-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.8rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.seal-result .result-glyph {
+  font-size: 1.6rem;
+}
+
+.seal-result--taken {
+  color: var(--ink-soft);
+}
+
+.claim-form {
+  margin-left: auto;
+}
+
+.release-form {
+  margin: 1.5rem 0;
+}
+
 footer {
-  margin-top: 3rem;
+  margin-top: 2.5rem;
   padding-top: 1rem;
   border-top: 1px solid var(--rule);
   color: var(--ink-soft);
@@ -203,12 +713,243 @@ footer {
   color: var(--ink-soft);
 }
 
-@media (width <= 480px) {
-  body {
-    padding: 1rem 0.9rem 3rem;
+/* The lantern: a reward for an accepted line, never for a failed click.
+   Only transform and opacity animate; the sky clips its own overflow. */
+.lantern-sky {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.lantern {
+  position: absolute;
+  width: 4.5rem;
+  height: 6.2rem;
+  animation: lantern-rise 4s cubic-bezier(0.4, 0.1, 0.6, 1) forwards;
+}
+
+.lantern::before {
+  content: "";
+  position: absolute;
+  inset: -1.5rem;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(241 194 122 / 55%), transparent);
+}
+
+.lantern svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.lantern-text {
+  position: absolute;
+  top: 1.05rem;
+  left: 0.65rem;
+  right: 0.65rem;
+  height: 3.6rem;
+  overflow: hidden;
+  font-size: var(--lantern-size, 0.6rem);
+  line-height: 1.2;
+  text-align: center;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--entry-ink);
+  mask-image: linear-gradient(#000 70%, transparent);
+}
+
+.lantern-seal {
+  position: absolute;
+  bottom: 0.95rem;
+  left: 50%;
+  translate: -50% 0;
+  font-size: 0.6rem;
+  line-height: 1;
+  padding: 0.05rem 0.1rem;
+  color: var(--ink-soft);
+  border: 1px solid var(--ink-soft);
+}
+
+.lantern--faint {
+  width: 2rem;
+  height: 2.8rem;
+  opacity: 0.35;
+  animation-duration: 7s;
+}
+
+@keyframes lantern-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(1);
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  70% {
+    opacity: 0.9;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(var(--drift, 1.5rem), calc(-1 * var(--rise, 60vh))) scale(0.7);
+  }
+}
+
+/* The fan: the page opens through a fan-shaped opening pivoting at the
+   bottom centre, with faint pleat ribs. Content stays in the DOM and
+   readable underneath; the veil only covers it visually, and is hidden
+   (and, with script, removed) once open. */
+.fan-veil,
+.fan-ribs {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.fan-veil {
+  background: var(--silk-dark);
+  mask-image: conic-gradient(from -90deg at 50% 100%, transparent 0 var(--fan), #000 var(--fan));
+  animation: fan-open 1.4s ease-out forwards;
+}
+
+.fan-ribs {
+  background: repeating-conic-gradient(from -90deg at 50% 100%, rgb(185 160 106 / 45%) 0 0.35deg, transparent 0.35deg 9deg);
+  mask-image: conic-gradient(from -90deg at 50% 100%, #000 0 var(--fan), transparent var(--fan));
+  animation: fan-ribs 1.4s ease-out forwards;
+}
+
+@keyframes fan-open {
+  0% {
+    --fan: 0deg;
+  }
+
+  85% {
+    --fan: 180deg;
+    opacity: 1;
+  }
+
+  100% {
+    --fan: 180deg;
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@keyframes fan-ribs {
+  0% {
+    --fan: 0deg;
+    opacity: 1;
+  }
+
+  85% {
+    --fan: 180deg;
+  }
+
+  100% {
+    --fan: 180deg;
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.fan-seen .fan-veil,
+.fan-seen .fan-ribs {
+  display: none;
+}
+
+@media (width <= 600px) {
+  .mount {
+    padding-top: 0.75rem;
+  }
+
+  .mount-silk {
+    margin: 0 0.4rem;
+    padding: 1.1rem 0.55rem;
+  }
+
+  .sheet {
+    padding: 1.4rem 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .site-header::before {
+    inset: -1.4rem -1rem 0;
+  }
+
+  .painting-art {
+    width: 100%;
+    height: auto;
   }
 
   .colophon {
-    grid-template-columns: 2rem 1fr;
+    grid-template-columns: 2.2rem minmax(0, 1fr);
+    gap: 0 0.7rem;
+  }
+
+  .divider .ornament--spruce:last-child {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fan-veil,
+  .fan-ribs,
+  .lantern-sky {
+    display: none;
+  }
+
+  .ink-ch,
+  .colophon--arriving {
+    animation: none;
+  }
+
+  .ink-blot {
+    display: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  body,
+  .sheet,
+  .mount-silk {
+    background-image: none;
+  }
+
+  .site-header::before {
+    display: none;
+  }
+}
+
+@media print {
+  html,
+  body {
+    background: #fff;
+  }
+
+  .roller,
+  .fan-veil,
+  .fan-ribs,
+  .lantern-sky,
+  .write,
+  .divider {
+    display: none;
+  }
+
+  .mount-silk,
+  .sheet {
+    margin: 0;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .site-header::before {
+    display: none;
   }
 }

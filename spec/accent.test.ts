@@ -12,7 +12,13 @@ import { expect, it } from "vitest";
 // silently, the same way a patched line with no test behind it did last time.
 const css = readFileSync("public/styles.css", "utf8");
 
-const ALLOWED_SELECTORS = [".colophon--mine .colophon-seal", ".colophon--mine .colophon-date"];
+// A seal is a <details> whose <summary> is the stamp itself: outlined for a
+// random hash glyph, filled for a chosen seal. Both are still "yours" only.
+const ALLOWED_SELECTORS = [
+  ".colophon--mine .colophon-seal summary",
+  ".colophon--mine .seal--chosen summary",
+  ".colophon--mine .colophon-date",
+];
 
 it("var(--seal) marks only a colophon that belongs to the current browser", () => {
   const rules = css

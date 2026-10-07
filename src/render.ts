@@ -44,6 +44,7 @@ function layout(title: string, body: string): string {
   </head>
   <body>
     <div class="fan-veil" aria-hidden="true"></div>
+    <div class="fan-ribs" aria-hidden="true"></div>
     <div class="mount">
       <div class="roller roller--top" aria-hidden="true"></div>
       <div class="mount-silk">

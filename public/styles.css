@@ -725,8 +725,8 @@ footer {
 
 .lantern {
   position: absolute;
-  width: 4.5rem;
-  height: 6.2rem;
+  width: 5.4rem;
+  height: 7.5rem;
   animation: lantern-rise 4s cubic-bezier(0.4, 0.1, 0.6, 1) forwards;
 }
 
@@ -747,10 +747,10 @@ footer {
 
 .lantern-text {
   position: absolute;
-  top: 1.05rem;
-  left: 0.65rem;
-  right: 0.65rem;
-  height: 3.6rem;
+  top: 1.25rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  height: 4.4rem;
   overflow: hidden;
   font-size: var(--lantern-size, 0.6rem);
   line-height: 1.2;
@@ -763,7 +763,7 @@ footer {
 
 .lantern-seal {
   position: absolute;
-  bottom: 0.95rem;
+  bottom: 1.25rem;
   left: 50%;
   translate: -50% 0;
   font-size: 0.6rem;

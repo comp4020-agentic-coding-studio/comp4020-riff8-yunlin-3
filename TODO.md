@@ -5,20 +5,22 @@ the same commit as the work.
 
 ## Now
 
-- P2 ink-in typing (item 5)
+- P3 fan opening (item 9): verify in the browser
 
 ## Next
 
-- [ ] P2 ink-in typing (item 5)
-- [ ] P2 lantern launch (item 6)
 - [ ] P3 fan opening (item 9)
 - [ ] P3 extras
 
 ## Done
 
-- [x] P1 ink palette + contrast and seal-distance tests (item 4)
-- [x] P2 theme: mount, cloth, tokens (item 7)
-- [x] P2 watercolour painting + header wash (item 8)
+- [x] P2 ink-in typing (item 5)
+- [x] P2 lantern launch (item 6), including the optional faint lantern for
+  other people's arrivals
+
+- [x] P1 ink palette + contrast and seal-distance tests (item 4) (72787aa)
+- [x] P2 theme: mount, cloth, tokens (item 7) (72787aa)
+- [x] P2 watercolour painting + header wash (item 8) (72787aa)
 
 - [x] P0 SSE live append + `Last-Event-ID` reconnect + tests (item 1) (a9d4284)
 - [x] P0 DB migration + seal/ink columns, tested on a populated database (a9d4284)
@@ -52,7 +54,12 @@ the same commit as the work.
 - Seal tests release their claims so a reused local DB doesn't fill the pool.
 - Kill scratch servers by PID only; other pod runs share the machine.
 - Theme: the wall is plaster, the mount silk carries the brocade, sheets are
-  paper with a gilt edge. Fan CSS is already in `styles.css`; `fan.js` is
-  still a placeholder.
+  paper with a gilt edge.
 - Decided: the Wang Yi handscroll photo stays, smaller, as "the tradition
   this margin borrows from"; the watercolour is the mounted painting.
+- Client tests (`spec/client.test.ts`) run the served `app.js` in jsdom
+  against the running app with real POSTs and a fake EventSource;
+  `window.colophonConfig.handoffMs` shortens the lantern handoff there.
+- Own accepted ids are `reserved` until the lantern hands over, and live
+  events are queued while a submit is in flight, so the echo never lands
+  early or twice.

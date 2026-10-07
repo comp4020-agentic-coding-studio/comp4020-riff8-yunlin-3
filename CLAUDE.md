@@ -35,6 +35,61 @@ agent was directed, not for what anyone owes.
 
 # Your harness
 
+Colophon is a shared, anonymous, permanent margin on one Chinese handscroll
+painting. Visitors leave one-line notes (max 320 characters) that cannot be
+edited or deleted, signed with a seal they choose by meaning from a curated
+English/Chinese dictionary and written in an ink from a fixed palette.
+Confirmed notes appear on every open session within about a second. The look
+is a silk-mounted scroll with pine and rock, ink-in typing, a lantern launch
+and a fan opening. Small, quiet, finished; not a platform.
+
+## Stack and layout
+
+Plain `node:http` server run directly from `.ts` (Node 24 strips types),
+`node:sqlite`, no framework, one runtime dependency (`marked`, for `/readme/`).
+
+- `src/server.ts` --- routes, request-body cap, static files under `/public/`
+- `src/db.ts` --- opens the SQLite file (`/data` on Fly) and the queries
+- `src/render.ts` --- every HTML page as template strings
+- `src/html.ts` --- `escapeHtml`
+- `src/seal.ts` --- the hash-glyph fallback seal
+- `src/cookies.ts` --- the anonymous `seal` token cookie
+- `src/markdown.ts` --- README to HTML
+- `public/styles.css` --- the whole theme
+- `public/scroll.avif` --- the Wang Yi handscroll photograph
+- `public/favicon.svg`
+
+## Design tokens
+
+- `--paper` `#f3ede1` the sheet everything is written on
+- `--ink` / `--ink-soft` body text and secondary text
+- `--seal` `#a8402c` means only "this colophon is yours"; nothing else is red
+
+## Working agreement
+
+- Commit small and often, one idea per commit. Run `pnpm check` (with the app
+  running) first and commit only when it exits 0 --- gate on the command's own
+  exit code, never on a pipe into `grep`. Push `main` after each green commit
+  (in a pod run the harness pushes when the run stops instead). Never commit
+  or push on red; fix or revert first. Never commit secrets.
+- After any UI or layout change, open the running app in a real browser
+  (`agent-browser`), screenshot at 1920x1080 and 390x844, and read the
+  screenshots: no horizontal scroll, controls reachable and tappable, art not
+  clipped, text legible over the cloth, animations finishing and leaving
+  nothing behind. Never claim a visual check you didn't do.
+- Every animation respects `prefers-reduced-motion`; decorative art and
+  lanterns are `aria-hidden`; every control has a keyboard path and a visible
+  focus state; text keeps 4.5:1 contrast on every surface it sits on.
+- The SQLite file lives on persistent storage. Migrations are idempotent and
+  tested against a database that already has rows. Never drop or rewrite
+  existing colophons.
+- `TODO.md` is the running to-do list (Now, Next, Done, Context); update it
+  in the same commit as the work it records.
+- A claim in `README.md`, `CLAUDE.md`, the ADRs in `docs/adr/` and `spec/`
+  must hold in all of them; change them together, in the same commit.
+
+## Rules
+
 Rules for working on Colophon, derived from what `README.md` argues good means
 here. If a change would break one of these, the argument in `README.md` is
 what has to change first, in the same commit.
@@ -58,4 +113,5 @@ what has to change first, in the same commit.
   is yours," that's a sign the design has drifted, not a sign to add a second
   colour.
 - When a check finds a real bug, the fix is a new `spec/` test or a rule in
-  this file, not just a patched line with no trace of what went wrong.
+  this file, not just a patched line with no trace of what went wrong. When
+  you are corrected, put the rule here.

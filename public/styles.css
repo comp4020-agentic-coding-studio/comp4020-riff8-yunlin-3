@@ -241,6 +241,36 @@ h3 {
   mix-blend-mode: multiply;
 }
 
+/* Mist: a very slow, low-contrast drift across the painting. */
+.painting-frame {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.painting-frame::after {
+  content: "";
+  position: absolute;
+  inset: 35% -60% 25%;
+  background: radial-gradient(closest-side, rgb(243 237 225 / 55%), transparent);
+  pointer-events: none;
+  animation: mist 60s ease-in-out infinite alternate;
+}
+
+@keyframes mist {
+  from {
+    transform: translateX(-25%);
+    opacity: 0.4;
+  }
+
+  to {
+    transform: translateX(25%);
+    opacity: 0.9;
+  }
+}
+
 .painting figcaption {
   max-width: 28rem;
   margin: 0.75rem auto 0;
@@ -407,13 +437,38 @@ figcaption {
   color: var(--entry-ink, var(--ink));
 }
 
+/* A line that has just arrived is fresh ink: deeper, with a faint wet
+   sheen, drying to its final colour over about eight seconds. Its seal
+   presses down into the paper as it lands. */
 .colophon--arriving {
   animation: arrive 1.2s ease-out;
+}
+
+.colophon--arriving .colophon-body {
+  animation: dry 8s ease-out;
+}
+
+.colophon--arriving .colophon-seal summary {
+  animation: press 0.7s cubic-bezier(0.3, 1.4, 0.5, 1) 0.3s backwards;
 }
 
 @keyframes arrive {
   from {
     opacity: 0;
+  }
+}
+
+@keyframes dry {
+  from {
+    filter: saturate(1.6) brightness(0.8);
+    text-shadow: 0 0 0.06em currentcolor;
+  }
+}
+
+@keyframes press {
+  from {
+    opacity: 0;
+    transform: scale(1.6);
   }
 }
 
@@ -882,6 +937,7 @@ footer {
     inset: -1.4rem -1rem 0;
   }
 
+  .painting-frame,
   .painting-art {
     width: 100%;
     height: auto;
@@ -905,7 +961,10 @@ footer {
   }
 
   .ink-ch,
-  .colophon--arriving {
+  .colophon--arriving,
+  .colophon--arriving .colophon-body,
+  .colophon--arriving .colophon-seal summary,
+  .painting-frame::after {
     animation: none;
   }
 
@@ -921,7 +980,8 @@ footer {
     background-image: none;
   }
 
-  .site-header::before {
+  .site-header::before,
+  .painting-frame::after {
     display: none;
   }
 }
@@ -937,7 +997,8 @@ footer {
   .fan-ribs,
   .lantern-sky,
   .write,
-  .divider {
+  .divider,
+  .painting-frame::after {
     display: none;
   }
 

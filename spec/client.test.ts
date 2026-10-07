@@ -150,6 +150,8 @@ it("a live colophon from someone else is placed in id order, once", async () => 
   FakeEventSource.last!.emit("colophon", { id: next, html, legend: "" });
   const list = [...document.querySelectorAll<HTMLElement>("li.colophon")];
   expect(list.at(-1)!.dataset.id).toBe(String(next));
+  // Fresh ink and the seal press hang off this class.
+  expect(list.at(-1)!.classList.contains("colophon--arriving")).toBe(true);
   expect(list.filter((li) => li.dataset.id === String(next))).toHaveLength(1);
   expect(FakeEventSource.last!.url).toBe(`/events?after=${Math.max(0, ...ids)}`);
 });

@@ -5,17 +5,26 @@ the same commit as the work.
 
 ## Now
 
-- P3 fan opening (item 9): verify in the browser
+- Docs pass: README on the look and the live behaviour; final checks
 
 ## Next
 
-- [ ] P3 fan opening (item 9)
-- [ ] P3 extras
+- [ ] P3 extras: print stylesheet (rollers, lanterns, fan and form dropped;
+  the scroll as a clean page) --- already in `styles.css`, untested
 
 ## Done
 
-- [x] P2 ink-in typing (item 5)
-- [x] P2 lantern launch (item 6), including the optional faint lantern for
+- [x] P3 extras: fresh ink --- an arriving line looks wet and dries over
+  ~8 s, so a live arrival reads as just written, not as a reload
+- [x] P3 extras: seal press --- the seal stamps down as an entry lands, the
+  way a collector's seal finishes a colophon
+- [x] P3 extras: mist --- a slow, faint drift across the painting, so the
+  mounted picture feels like weather rather than a flat image
+
+- [x] P3 fan opening (item 9) (CSS in 72787aa, gate in 32519bb)
+
+- [x] P2 ink-in typing (item 5) (32519bb)
+- [x] P2 lantern launch (item 6) (32519bb), including the optional faint lantern for
   other people's arrivals
 
 - [x] P1 ink palette + contrast and seal-distance tests (item 4) (72787aa)
@@ -63,3 +72,7 @@ the same commit as the work.
 - Own accepted ids are `reserved` until the lantern hands over, and live
   events are queued while a submit is in flight, so the echo never lands
   early or twice.
+- Browser checks done: two independent agent-browser sessions (390x844
+  writer, 1920x1080 watcher) saw the line arrive ~60 ms after the click; a
+  server restart with a line written before the page reconnected was
+  replayed via `Last-Event-ID` with no reload.

@@ -139,7 +139,7 @@ export function renderIndex(colophons: Colophon[], ownToken: string, error?: str
       <div class="sheet sheet--painting">
         ${header("a shared margin on one painting", false)}
         <figure class="painting">
-          ${PAINTING}
+          <div class="painting-frame">${PAINTING}</div>
           <figcaption>Spruce, granite and a path, in watercolour: the painting this margin is mounted beside.</figcaption>
         </figure>
       </div>

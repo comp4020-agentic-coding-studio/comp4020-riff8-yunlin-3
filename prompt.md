@@ -106,6 +106,17 @@ Seed `TODO.md` with these, in this order:
   existing hash glyphs (鑑 賞 藏 觀 閱 記 題 珍 玩 守 傳 校). Put a comment at
   the top: "Needs review by a Chinese reader before it is trusted." Do not
   invent obscure or ambiguous characters; fewer, correct entries beat more.
+  A starter set the mock used (27 characters; extend it, and a Chinese reader
+  must still check every row): 鑑 jiàn to appraise; 賞 shǎng to admire; 藏 cáng
+  to treasure and keep; 觀 guān to look closely; 閱 yuè to read through; 記 jì to
+  record, to remember; 題 tí to inscribe; 珍 zhēn to treasure; 玩 wán to savour;
+  守 shǒu to guard; 傳 chuán to pass on; 校 jiào to compare, to proofread; 山
+  shān mountain; 水 shuǐ water; 松 sōng pine; 石 shí rock; 雲 yún cloud; 月 yuè
+  moon; 風 fēng wind; 墨 mò ink; 筆 bǐ brush; 夢 mèng dream; 靜 jìng still,
+  quiet; 遠 yuǎn far; 歸 guī to return home; 心 xīn heart, mind; 燈 dēng lantern.
+  Search words are English synonyms ("keep", "look", "mountain", "dream"). In
+  the mock, "treasure" matched 珍 (shown as taken) and 藏 (free), which is
+  the behaviour the claim race should produce.
 - English to Chinese: a no-JS page (a plain GET form, then a plain POST to
   claim) shows matches as `珍 zhēn: to treasure`; the visitor picks one. No
   match shows "no seal for that word" and a few close suggestions. Never
@@ -260,6 +271,13 @@ Georgia) so every page, including `/readme/`, feels like one object.
   `#f3ede1`. The mount silk is a moss green (about `#61785a`) rather than
   celadon blue-grey. These are scenery tokens: they never colour a visitor's
   text, never mean "yours", and are separate from the ink palette and `--seal`.
+- Values that worked in the mock (start here, adjust by eye): mount silk
+  `#61785a` with a darker `#46593f` for shading; the header wash is the painting
+  at about 50% opacity, positioned near the top of the image, masked so it fades
+  to paper at both sides and toward the bottom; the painting is shown with
+  `mix-blend-mode: multiply` on the paper so its unpainted border disappears
+  into the sheet; gilt edge `#b9a06a` around the paper panel; rollers are a dark
+  wood gradient (`#3b2817`, `#8a6440`, `#4a3320`) with small knobs.
 - Restyle the stock blue and purple links to ink tones.
 - Cloth texture, all CSS and inline SVG, no raster assets: faint warp-and-weft
   weave from two `repeating-linear-gradient` layers; a small tiled
@@ -299,6 +317,31 @@ you do not have it, so paint from this description.
   and a tiny rock beside the writing form. Decorative pieces are `aria-hidden`.
   At 390 px scale down or drop extras so nothing causes horizontal scroll.
 - Text never sits on the painting. Entries and the form stay on plain paper.
+
+**Reference recipe for the watercolour look.** The mock's painting was made from
+the reference photograph with a short Pillow and numpy pipeline. You cannot
+rerun it (you have no photo), but it tells you what the finished look is made of
+so your SVG can imitate each step:
+1. Flatten detail into washes: three median passes (size 7) and a 1.6 px blur.
+   In SVG: big simple shapes, no texture detail inside them.
+2. Posterise to about 16 pigment colours, then blend 62% of that back over the
+   smoothed image. In SVG: a small, fixed set of fills (roughly five greens,
+   three granite greys, two earths, one sky), reused, not a gradient per shape.
+3. Lift toward the paper so nothing is fully dark: darkest values about 7%
+   lighter and mixed 8% with paper `#f3ede1`. In SVG: no pure black; the darkest
+   spruce is a deep green near `#27342c`, never `#000`.
+4. Raise saturation (about 1.5x) and give greens an extra push toward spruce
+   green `#28784a`; skies and stone stay muted. In SVG: vivid but few greens
+   against quiet greys, so the trees carry the colour.
+5. Pool pigment at edges: where two colours meet, darken the rim by about a third
+   and add a faint warm-brown line (`#3c2d1e` at roughly 10%). In SVG: a thin,
+   low-opacity stroke on rims. This gives the "toon" outline.
+6. Paper grain and granulation: soft fractal noise (about +/-8% brightness) plus
+   fine speckle (about +/-2%). In SVG: the tiled `feTurbulence` tile.
+7. Unpainted ragged border: fade the painting to bare paper within roughly 6 to
+   30 px of an 820 px-wide sheet, with an irregular edge. In SVG: a ragged
+   clip or mask path around the whole painting.
+Aim for a hazy, hand-painted look, not a photo filter and not a flat vector.
 
 ### Tier 3: only if there is time
 

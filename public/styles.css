@@ -1194,6 +1194,52 @@ footer {
   }
 }
 
+/* The frontispiece at the oldest end of the scroll: the title written
+   large and vertical in plain ink, the name and year small beside it. Never
+   --seal; it belongs to nobody. The scroll lays the list and it in one row
+   (scroll.css owns .scroll; this rule only applies when a frontispiece is
+   there, and can move into scroll.css). */
+.scroll:has(> .yinshou) {
+  display: flex;
+  align-items: stretch;
+}
+
+.scroll:has(> .yinshou) > .colophon-list {
+  flex: none;
+}
+
+.yinshou {
+  display: flex;
+  flex: none;
+  flex-direction: row-reverse;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 9rem;
+  padding: 2rem 1.25rem;
+  border-left: 1px solid rgb(185 160 106 / 45%);
+}
+
+.yinshou-title {
+  writing-mode: vertical-rl;
+  font-size: 3.2rem;
+  line-height: 1;
+  letter-spacing: 0.35em;
+  color: var(--ink);
+}
+
+.yinshou-name,
+.yinshou-begun {
+  writing-mode: vertical-rl;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.yinshou-name {
+  font-style: italic;
+}
+
 /* The dock: the writing form, fixed to the bottom of the viewport by CSS
    alone, outside the scroll's flow. A paper panel under a strip of mount
    silk; the body is padded by --dock-h so nothing stays covered. Grows

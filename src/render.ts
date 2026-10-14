@@ -146,6 +146,19 @@ export interface Draft {
 }
 
 const countFmt = new Intl.NumberFormat("en-AU");
+const yearFmt = new Intl.DateTimeFormat("en-AU", { year: "numeric", timeZone: "Australia/Canberra" });
+
+// The frontispiece (引首): a handscroll opens with a title inscription, so
+// ours stands at the oldest end, after the last sheet. Decorative: not a
+// list item, and hidden from assistive tech. Omitted on an empty scroll,
+// where the empty note says what there is to say.
+function yinshou(oldest: Colophon): string {
+  return `<div class="yinshou" aria-hidden="true">
+                <span class="yinshou-title" lang="zh-Hant">題記</span>
+                <span class="yinshou-name">Colophon</span>
+                <span class="yinshou-begun">begun ${yearFmt.format(new Date(oldest.created_at))}</span>
+              </div>`;
+}
 
 // The strip under the scroll and its cue; scroll.js draws the window and
 // rewrites the cue to the lines in view.
@@ -178,7 +191,7 @@ export function renderIndex(colophons: Colophon[], ownToken: string, error?: str
               <ol class="colophon-list" reversed data-last-id="${lastId}">
                 ${newestFirst.map((c) => colophonEntry(c, ownToken)).join("\n                ")}
               </ol>
-              ${colophons.length === 0 ? `<p class="empty-note">No one has written in the margin yet.</p>` : ""}
+              ${colophons.length === 0 ? `<p class="empty-note">No one has written in the margin yet.</p>` : yinshou(colophons[0]!)}
             </div>
             <div class="handscroll-roller handscroll-roller--end" aria-hidden="true"></div>
           </div>

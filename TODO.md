@@ -11,6 +11,11 @@ the same commit as the work.
 
 ## Next
 
+- [ ] P1 scrolls of ~10,000 lines: fast line-mode wheel and live arrivals
+  still cost 50-90 ms long tasks (2,000 lines are clean). A JS render window
+  fixed the wheel but broke find-in-page and copy, so it was held back
+- [ ] P2 resizing the window mid-scroll loses the sheet you were reading
+
 - [ ] P1 have a Chinese reader review every row of `src/dictionary.ts` and
   `src/dictionary/*.ts` (glyph, pinyin, gloss, search words), now 885 rows,
   before the seals are trusted
@@ -23,6 +28,10 @@ the same commit as the work.
   colophon count, and a time-of-day sky tint computed in the browser
 
 ## Done
+
+- [x] P2 L7: crossing the length limit is announced once each way; a
+  rejected no-JS page marks the text `aria-invalid`; seal results labelled by
+  their heading; ADR 0002 tells a narrator the tag is the person (b009a73)
 
 - [x] P0 L6: the textarea no longer has `maxlength`, which silently cut a
   321-character paste mid-word against the "never auto-truncate" rule; the

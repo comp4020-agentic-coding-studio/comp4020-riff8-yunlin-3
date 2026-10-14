@@ -24,6 +24,12 @@ the same commit as the work.
 
 ## Done
 
+- [x] P1 L4: the list is newest first in the page itself (`ol reversed`),
+  so keyboard, screen reader and no-JS reading all start at the newest
+  line; "Skip past the scroll" link; README and CLAUDE.md caught up (bcea551).
+  ux: newest sheet is Tab stop 7 with no jump (was 942 stops, first one the
+  oldest line)
+
 - [x] P1 L2: browse seals by theme on /seal (no JS, paginated, never
   echoed), each sheet's date links to its line, other people's lines
   announced with a short excerpt (glyph only while you type), the overview

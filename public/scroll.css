@@ -80,6 +80,24 @@
   box-shadow: -0.15rem 0 0.4rem rgb(0 0 0 / 30%);
 }
 
+/* "Skip past the scroll" (styles.css .skip-link: hidden until focused).
+   Inside the band it appears at the band's own corner, over the newest
+   sheet, rather than at the top of the window. */
+.handscroll .skip-link {
+  position: absolute;
+  top: 0.4rem;
+  left: 1.4rem;
+  z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+  transform: none;
+}
+
+.handscroll .skip-link:focus {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 /* The paper ground. Its weave is painted per sheet (below), so it travels
    with the sheets and only visible sheets paint it. */
 .scroll {

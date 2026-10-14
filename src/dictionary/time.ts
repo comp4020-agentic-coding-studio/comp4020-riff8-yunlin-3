@@ -48,4 +48,22 @@ export const TIME = [
   e("候", "hòu", "season, to wait", "wait, await, climate"),
   e("待", "dài", "to wait", "wait, await, expect, treat"),
   e("瞬", "shùn", "a blink", "instant, blink, wink"),
+
+  // Batch 5: places, sky and colour, time words, plants and creatures, trades.
+  e("旬", "xún", "ten days", "ten days"),
+  e("週", "zhōu", "week, cycle", "week, cycle, circuit"),
+  e("曆", "lì", "calendar", "calendar, almanac"),
+  e("紀", "jì", "era, record", "era, epoch, record, age"),
+  e("昨", "zuó", "yesterday", "yesterday"),
+  e("後", "hòu", "after", "after, later, behind, afterwards"),
+  e("先", "xiān", "before, first", "first, before, earlier, ahead"),
+  e("前", "qián", "before, front", "before, front, former, forward"),
+  e("再", "zài", "again", "again, once more, repeat"),
+  e("復", "fù", "to return, again", "again, recover, restore, revive"),
+  e("暫", "zàn", "brief", "brief, temporary, momentary"),
+  e("忽", "hū", "suddenly", "suddenly, sudden, neglect"),
+  e("漸", "jiàn", "gradually", "gradual, gradually, slowly"),
+  e("徐", "xú", "slow, gentle", "slowly, gently, leisurely"),
+  e("速", "sù", "swift", "swift, fast, speed, quick"),
+  e("急", "jí", "urgent", "urgent, hurry, hasty, quick"),
 ];

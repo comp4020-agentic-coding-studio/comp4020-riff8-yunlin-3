@@ -85,8 +85,8 @@ export const STUDIO = [
   e("功", "gōng", "merit, effort", "merit, achievement, effort, accomplishment"),
 
   // Batch 4: feelings, kin, the table, study, virtues.
-  e("塾", "shú", "family school", "school, schoolroom, tutor"),
-  e("館", "guǎn", "hall, house", "library, museum, hall, inn"),
+  e("塾", "shú", "family school", "school, schoolroom"),
+  e("館", "guǎn", "hall, house", "hall, inn, guesthouse"),
   e("徒", "tú", "disciple", "disciple, pupil, apprentice, student"),
   e("教", "jiào", "to teach", "teach, teaching, education, lesson"),
   e("誨", "huì", "to instruct", "teach, instruct, admonish"),

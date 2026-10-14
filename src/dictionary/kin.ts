@@ -84,7 +84,7 @@ export const KIN = [
   e("抱", "bào", "to embrace", "hug, embrace, hold, cuddle"),
   e("床", "chuáng", "bed", "bed, couch"),
   e("寢", "qǐn", "to sleep, bedroom", "bedroom, bedchamber, sleep"),
-  e("餅", "bǐng", "cake, flatbread", "bread, cake, pastry, biscuit, cookie"),
+  e("餅", "bǐng", "cake, flatbread", "cake, flatbread, pastry, mooncake"),
   e("米", "mǐ", "rice", "rice, grain"),
   e("鹽", "yán", "salt", "salt"),
   e("菜", "cài", "vegetables, dish", "vegetable, vegetables, greens, dish"),

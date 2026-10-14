@@ -81,7 +81,7 @@ export const MIND = [
   e("覺", "jué", "to awaken, to be aware", "awake, aware, realise, realize, conscious"),
 
   // Batch 4: feelings, kin, the table, study, virtues.
-  e("驚", "jīng", "to be startled", "startled, surprise, surprised, amazed, astonish, afraid"),
+  e("驚", "jīng", "to be startled", "startled, surprise, surprised, amazed, astonish"),
   e("倦", "juàn", "weary", "weary, tired, weariness, fatigue"),
   e("憩", "qì", "to rest", "rest, repose, pause, respite"),
   e("息", "xī", "breath, to rest", "breath, rest, sigh, cease"),
@@ -95,7 +95,7 @@ export const MIND = [
   e("懶", "lǎn", "idle, lazy", "lazy, idle, sluggish"),
   e("想", "xiǎng", "to think, to imagine", "think, imagine, imagination, wish, miss"),
   e("疑", "yí", "to doubt", "doubt, question, uncertain"),
-  e("誓", "shì", "vow", "vow, oath, pledge, swear"),
+  e("誓", "shì", "vow", "vow, oath, pledge"),
   e("膽", "dǎn", "nerve, daring", "nerve, daring, guts, boldness"),
   e("興", "xìng", "inspired mood", "enthusiasm, excitement, excited, mood, inspiration"),
   e("畏", "wèi", "awe, fear", "awe, fear, afraid, revere"),
@@ -105,4 +105,8 @@ export const MIND = [
   e("浮", "fú", "to float", "float, drift, floating, fleeting"),
   e("力", "lì", "strength", "strength, power, force, strong"),
   e("健", "jiàn", "vigorous", "healthy, vigorous, strong, robust"),
+
+  // Batch 5: places, sky and colour, time words, plants and creatures, trades.
+  e("羞", "xiū", "shy, bashful", "shy, bashful, blush, shame"),
+  e("怒", "nù", "anger", "anger, angry, rage, fury"),
 ];

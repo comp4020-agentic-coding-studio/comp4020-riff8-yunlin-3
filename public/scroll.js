@@ -2,7 +2,7 @@
 // scroller (public/scroll.css). Without this file the scroll still opens at
 // the newest line and scrolls by touch, trackpad, scrollbar and arrow keys.
 //
-// Direction: the list is row-reverse, so scrollLeft 0 is the newest end and
+// Direction: the list is newest first, so scrollLeft 0 is the newest end and
 // scrollLeft grows toward the oldest. A vertical wheel reads on: wheel down
 // moves to older lines (scrollLeft up), wheel up back toward the newest, the
 // way scrolling down a page moves later into it. Arrow keys are spatial
@@ -31,7 +31,7 @@
   const maxLeft = () => scroller.scrollWidth - scroller.clientWidth;
   const clamp = (x) => Math.max(0, Math.min(maxLeft(), x));
   // Each sheet's own left and right edge in scroll coordinates, newest
-  // first (visual order; the DOM is oldest first). Sheets differ in width
+  // first (visual order, left to right). Sheets differ in width
   // (short, mid, long), so nothing assumes one sheet width. Read once per
   // layout change by layout() below, never per scroll frame.
   let starts = new Float64Array(0);
@@ -287,8 +287,12 @@
     starts = new Float64Array(items.length);
     ends = new Float64Array(items.length);
     mids = new Float64Array(items.length);
-    for (let i = 0; i < items.length; i++) {
-      const li = items[items.length - 1 - i];
+    // Visual order regardless of DOM order: newest-first DOM (D10) reads
+    // straight through; an oldest-first list would read backwards.
+    const n = items.length;
+    const backwards = n > 1 && items[0].offsetLeft > items[n - 1].offsetLeft;
+    for (let i = 0; i < n; i++) {
+      const li = items[backwards ? n - 1 - i : i];
       starts[i] = li.offsetLeft;
       ends[i] = li.offsetLeft + li.offsetWidth;
       mids[i] = (starts[i] + ends[i]) / 2;

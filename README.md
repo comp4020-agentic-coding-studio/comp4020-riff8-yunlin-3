@@ -45,8 +45,8 @@ can [choose one by meaning](/seal): type an English word ("keep",
 dictionary that mean it. The dictionary holds nearly nine hundred
 characters in nine themes, from the studio and states of mind to
 landscape, weather, the seasons, living things, kin and the crafts; the
-seal page lets you browse each theme a page at a time with plain links,
-no script needed. Its search is forgiving: capitals don't matter, "mountains" and "keeping"
+seal page shows seals as a grid of cards and lets you browse each theme
+a page at a time with plain links, no script needed. Its search is forgiving: capitals don't matter, "mountains" and "keeping"
 find what "mountain" and "keep" do, and a word that only appears in a
 seal's gloss still finds it, ranked after the closer matches. Tap any seal
 on the scroll to read what it means. They also choose the ink they write
@@ -118,7 +118,9 @@ touch, trackpad and scrollbar are never intercepted. With a script, a
 vertical wheel and the arrow, Page and Home/End keys glide it along, and a
 line arriving from someone else never moves a reader who is somewhere
 else on the scroll; only a reader already at the newest end sees it slide
-in. With reduced motion asked for, every move is instant. Under the scroll
+in. Your own line is the exception: when it lands it glides into view
+wherever you were reading, since you've just watched it leave the dock.
+Follow a date link and Back returns you to where you were. With reduced motion asked for, every move is instant. Under the scroll
 a thin strip shows where you are along its whole length and which lines
 you're looking at, and your own lines appear on it as small red ticks ---
 the same red, the same meaning. A screen reader hears a new line arrive
@@ -153,7 +155,8 @@ No accounts, avatars or profiles --- a visitor is only their seal, held by an
 anonymous token in their browser, the same way a real seal marks presence
 without disclosing a name. No editing or deleting a colophon once it's
 written: ink doesn't come back off the paper, and a length limit (320
-characters) is the constraint that keeps a visitor considering a line rather
+characters, checked by the server, never by the browser cutting a paste
+short; the counter shows how far over you are) is the constraint that keeps a visitor considering a line rather
 than typing a paragraph. No likes, no replies, no threading, no
 notifications, no presence. The only live thing is a confirmed line arriving.
 

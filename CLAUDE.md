@@ -181,6 +181,11 @@ what has to change first, in the same commit.
   as counts only.
 - A new line is announced to screen readers through the one `role=status`
   line; presence never is.
+- The textarea has no `maxlength`: the browser would silently cut a paste
+  mid-word. The server is the only length boundary; the counter shows how
+  far over.
+- Pages that show per-visitor state (`/`, `/seal`) are never cached, and
+  reload when restored from the back-forward cache.
 - If the accent colour (`--seal`) gets a second meaning beyond "this colophon
   is yours," that's a sign the design has drifted, not a sign to add a second
   colour.

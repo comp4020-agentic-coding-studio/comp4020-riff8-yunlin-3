@@ -11,8 +11,9 @@ the same commit as the work.
 
 ## Next
 
-- [ ] P1 have a Chinese reader review every row of `src/dictionary.ts`
-  (glyph, pinyin, gloss, search words) before the seals are trusted
+- [ ] P1 have a Chinese reader review every row of `src/dictionary.ts` and
+  `src/dictionary/*.ts` (glyph, pinyin, gloss, search words), now 885 rows,
+  before the seals are trusted
 - [ ] P2 a test for the SSE stream cap (200) and the 25 s keepalive; both are
   in `src/live.ts` but untested (see Context)
 - [ ] P3 the spruces in `scripts/paint.py` still read a little like stacked
@@ -22,6 +23,15 @@ the same commit as the work.
   colophon count, and a time-of-day sky tint computed in the browser
 
 ## Done
+
+- [x] P1 the seal dictionary from 142 to 885 entries in nine themes, every
+  batch checked row by row (nine wrong search words and one wrong glyph
+  fixed); kinder ranked search: case, plurals, -ing/-ed, gloss words (ddc94e6)
+- [x] P1 L1: new lines announced to screen readers; focus stays in the box
+  after a submit; nothing hidden under the dock; overview strip with "you are
+  here", a line cue and red ticks for your own lines; README and CLAUDE.md
+  rewritten for the handscroll (ddc94e6). Testers: ux proved every M1b
+  finding fixed; perf 0 long tasks, p95 16.7 ms at 2,000 rows
 
 - [x] P0 the writing dock (fixed, CSS-only, no-JS form) and the colophons as a
   right-to-left mounted handscroll that opens at the newest line; eased wheel,

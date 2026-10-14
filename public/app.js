@@ -209,7 +209,7 @@
     const well = form.querySelector(".inkwell");
     const count = document.getElementById("body-count");
     const button = form.querySelector("button[type=submit]");
-    const max = Number(textarea.maxLength) || 320;
+    const max = Number(textarea.dataset.max) || 320;
 
     // Ink-in: a mirror behind a transparent textarea, one span per
     // character. New characters soak in; deleted ones blot out where they
@@ -224,6 +224,7 @@
 
     let chars = [];
     let spans = [];
+    let wasOver = null; // unknown until the first render, which never speaks
 
     function blot(span) {
       if (reducedMotion() || !span.isConnected) return;
@@ -271,8 +272,18 @@
         const left = max - textarea.value.length;
         count.textContent =
           left >= 0 ? `${left} of ${max} characters left.` : `${-left} ${left === -1 ? "character" : "characters"} over.`;
-        // Over the limit, the count stays visible even with the dock collapsed.
+        // Over the limit, the count stays visible even with the dock collapsed,
+        // and the field says it's invalid (the count is already in its
+        // aria-describedby).
         count.classList.toggle("count--over", left < 0);
+        if (left < 0) textarea.setAttribute("aria-invalid", "true");
+        else textarea.removeAttribute("aria-invalid");
+        // Crossing the limit is said once, either way, not on every keystroke.
+        const over = left < 0;
+        if (wasOver !== null && over !== wasOver) {
+          say(over ? `Over the limit by ${-left} ${left === -1 ? "character" : "characters"}.` : "Back within the limit.");
+        }
+        wasOver = over;
       }
     }
 

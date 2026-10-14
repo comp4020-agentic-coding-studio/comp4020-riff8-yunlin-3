@@ -273,7 +273,7 @@ function sealList(all: SealEntry[], page: SealPage, ownGlyph: string | undefined
       ? `<nav class="seal-pages" aria-label="Pages of seals">${n > 1 ? link(n - 1, "← Previous", "prev") : ""}
             <span>Page ${n} of ${pages}</span>${n < pages ? link(n + 1, "Next →", "next") : ""}</nav>`
       : "";
-  return `<ul class="seal-results">${shown.map((r) => sealResult(r, page, ownGlyph)).join("")}</ul>${nav}`;
+  return `<ul class="seal-results" aria-labelledby="results">${shown.map((r) => sealResult(r, page, ownGlyph)).join("")}</ul>${nav}`;
 }
 
 function themeLinks(current: string | undefined): string {

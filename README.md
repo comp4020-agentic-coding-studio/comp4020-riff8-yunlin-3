@@ -97,6 +97,12 @@ from the line's length when the page is drawn, not stored. Each sheet's
 date is a link to that line (`/#c-<id>`), so a line can be shared; opening
 one glides the scroll to it and rings it briefly in gilt.
 
+At the oldest end, past the first line ever written, stands a
+frontispiece. Real handscrolls open with a title inscription, the 引首,
+before the painting and everything appended after it; this one carries
+題記 written large in plain ink (never red, since it belongs to nobody),
+the name, and the year the scroll was begun, taken from its oldest line.
+
 The watercolour that used to stand above the margin is gone from the
 middle of the page; it survives only as a faint wash behind the title.
 The visitors' lines are the scroll now, and a painting at its head would
@@ -127,10 +133,19 @@ the same red, the same meaning. A screen reader hears a new line arrive
 through one quiet status line: someone else's line is read as its seal
 and a short excerpt, or the seal alone while you're writing, so your own
 words aren't talked over; a burst of lines is a single count, and your own
-line is confirmed when it's in. It never hears who else is reading.
+line is confirmed when it's in. Crossing the length limit while typing
+is announced once each way, over and back within it, rather than on every
+keystroke. It never hears who else is reading. Resize the window, or turn
+a phone, and the scroll keeps the sheet you were reading in view.
 
 Pages and text files are sent gzipped to any browser that asks, which
-keeps a long scroll quick to arrive on a slow connection.
+keeps a long scroll quick to arrive on a slow connection. Every sheet has
+a fixed width for its length, so the browser knows each one's size before
+drawing it, and the strip and cue are worked out by arithmetic rather than
+by measuring the page on every frame. That keeps the scroll smooth at a
+couple of thousand lines. At ten thousand it gets heavier, because the
+browser still lays out every sheet; that is known work, left for when the
+scroll is that long.
 
 As you type, your line inks itself in, character by character, in the ink
 you chose; a deleted character blots out where it stood. Nothing you type
@@ -169,7 +184,9 @@ than silently corrupted. It checks that a confirmed line reaches a second open
 page within a second, that a reconnect gets exactly what it missed, that two
 visitors racing for the same seal can't both win, that every seal has a
 pinyin and a meaning, that inks are only ever the five on the list, and that
-the old database upgrades without losing a line. Whether the tone of what
+the old database upgrades without losing a line. It also checks that the
+log names each action's visitor by seal and tag and never carries a token
+or a line's text. Whether the tone of what
 accumulates actually reads like a colophon --- considered, brief, worth adding
 to a shared object --- rather than chat is not something a test can check;
 that's for whoever reads the margin to judge.

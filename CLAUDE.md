@@ -35,15 +35,15 @@ agent was directed, not for what anyone owes.
 
 # Your harness
 
-Colophon is a shared, anonymous, permanent margin on one Chinese handscroll
-painting. Visitors leave one-line notes (max 320 characters) that cannot be
+Colophon is a shared, anonymous, permanent handscroll of colophons, after
+the Chinese handscroll tradition. Visitors leave one-line notes (max 320 characters) that cannot be
 edited or deleted, signed with a seal they choose by meaning from a curated
 English/Chinese dictionary and written in an ink from a fixed palette.
 Confirmed notes appear on every open session within about a second. The
 notes are the scroll: a silk-mounted handscroll read right to left, newest
 at the left end and first in the page, one sheet per line sized by its
-length, with a fixed writing dock, an overview
-strip, ink-in typing, a lantern launch and a fan opening. Small, quiet,
+length, a frontispiece (引首) at the oldest end, a fixed writing dock, an
+overview strip, ink-in typing, a lantern launch and a fan opening. Small, quiet,
 finished; not a platform.
 
 ## Stack and layout
@@ -73,7 +73,9 @@ Plain `node:http` server run directly from `.ts` (Node 24 strips types),
   background submit, the lantern, the dock's measured height and
   screen-reader announcements; user text only via `textContent`
 - `public/scroll.js` --- the handscroll's motion on a native scroller: eased
-  wheel and keys, arrivals that keep a reader in place, the overview strip
+  wheel and keys, arrivals that keep a reader in place, resize that keeps
+  the sheet in view, the overview strip; geometry is measured on layout
+  changes only, and each scroll frame is arithmetic
 - `public/fan.js` --- loaded in `<head>`; plays the fan once per session
 - `public/styles.css` --- the theme: mount, cloth, inks, dock, lantern, fan
 - `public/scroll.css` --- the handscroll: right-to-left sheets, rollers,
@@ -98,6 +100,9 @@ Plain `node:http` server run directly from `.ts` (Node 24 strips types),
 - `--paper-shade` `#ebe3d3` the darkest any texture behind text gets;
   `--lantern-paper` `#f6e6c4` the lantern body; every ink meets 4.5:1 on
   both (`spec/ink-palette.test.ts`)
+- `--sheet-short` / `--sheet-mid` / `--sheet-long` fixed sheet widths by
+  line length (`scroll.css`); fixed lengths, so every sheet's box is known
+  before it renders
 - `--dock-h` the dock's collapsed height, set per breakpoint in CSS and
   refined by `app.js`; `--dock-room` the dock's real, possibly expanded
   height, set by `app.js`. The page's bottom padding and `scroll-padding`
@@ -186,6 +191,8 @@ what has to change first, in the same commit.
   far over.
 - Pages that show per-visitor state (`/`, `/seal`) are never cached, and
   reload when restored from the back-forward cache.
+- Never hide off-screen sheets with `content-visibility: hidden`:
+  find-in-page and copy must reach every line.
 - If the accent colour (`--seal`) gets a second meaning beyond "this colophon
   is yours," that's a sign the design has drifted, not a sign to add a second
   colour.

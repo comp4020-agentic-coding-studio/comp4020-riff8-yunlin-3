@@ -876,6 +876,11 @@ button:hover {
   }
 }
 
+#results,
+#after-scroll {
+  scroll-margin-top: 1rem;
+}
+
 .seal-count:focus {
   outline: 2px solid var(--ink);
   outline-offset: 2px;

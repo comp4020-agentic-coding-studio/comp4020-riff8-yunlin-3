@@ -27,6 +27,7 @@ async function openPage(
   scripts: string[] = ["/public/app.js"],
   visitor?: string,
   edit: (html: string) => string = (html) => html,
+  before?: (window: JSDOM["window"]) => void,
 ): Promise<{ window: JSDOM["window"]; document: Document; errors: string[] }> {
   const cookie = visitor ?? (await newVisitor());
   const html = edit(await (await fetch(new URL("/", baseUrl), { headers: { Cookie: cookie } })).text());
@@ -51,6 +52,7 @@ async function openPage(
   });
   w.fetch = (url: string, init: RequestInit = {}) =>
     fetch(url, { ...init, headers: { ...(init.headers as Record<string, string>), Cookie: cookie } });
+  before?.(dom.window);
   for (const source of sources) dom.window.eval(source);
   // Parsing a long page blocks this process for seconds, long enough for the
   // server's keep-alive timeout to close the pooled socket the page came
@@ -391,4 +393,101 @@ it("a live line older than some on the page lands between them, newest first", a
   const order = [...document.querySelectorAll<HTMLElement>("li.colophon")].map((li) => Number(li.dataset.id));
   expect(order.slice(0, 3)).toEqual([newer, older, top]);
   expect(order).toEqual([...order].sort((a, b) => b - a));
+});
+
+// jsdom has no layout engine, so these give the scroll a plain one: every
+// sheet SHEET px wide, laid left to right in DOM order (newest first, D10),
+// in a scroller VIEW px wide. scroll.js reads only offsetLeft/Width,
+// scrollWidth/clientWidth and getBoundingClientRect, so this is enough to run
+// its real code paths. Motion is real too: moves glide in animation frames.
+const SHEET = 200;
+const VIEW = 600;
+
+function flatLayout(window: JSDOM["window"]): void {
+  const proto = window.HTMLElement.prototype;
+  const sheets = () => [...window.document.querySelectorAll<HTMLElement>(".scroll .colophon-list > li.colophon")];
+  const isSheet = (el: Element) => el.matches(".scroll .colophon-list > li.colophon");
+  const scroller = () => window.document.querySelector<HTMLElement>(".scroll")!;
+  const native = proto.getBoundingClientRect;
+  Object.defineProperty(proto, "offsetLeft", {
+    configurable: true,
+    get(this: HTMLElement) {
+      return isSheet(this) ? sheets().indexOf(this) * SHEET : 0;
+    },
+  });
+  Object.defineProperty(proto, "offsetWidth", {
+    configurable: true,
+    get(this: HTMLElement) {
+      return isSheet(this) ? SHEET : this.matches(".scroll") ? VIEW : 0;
+    },
+  });
+  proto.getBoundingClientRect = function (this: HTMLElement) {
+    if (isSheet(this)) {
+      const left = this.offsetLeft - scroller().scrollLeft;
+      return { left, right: left + SHEET, width: SHEET, top: 0, bottom: 100, height: 100, x: left, y: 0 } as DOMRect;
+    }
+    if (this.matches(".scroll")) {
+      return { left: 0, right: VIEW, width: VIEW, top: 0, bottom: 100, height: 100, x: 0, y: 0 } as DOMRect;
+    }
+    return native.call(this);
+  };
+  const el = scroller();
+  Object.defineProperty(el, "clientWidth", { configurable: true, get: () => VIEW });
+  Object.defineProperty(el, "scrollWidth", { configurable: true, get: () => Math.max(VIEW, sheets().length * SHEET) });
+}
+
+const inView = (document: Document, li: Element) => {
+  const left = (li as HTMLElement).offsetLeft - document.querySelector<HTMLElement>(".scroll")!.scrollLeft;
+  return left >= -1 && left + SHEET <= VIEW + 1;
+};
+
+it("your own line, written while reading far back, brings the view to it", async () => {
+  const { document, errors } = await openPage(["/public/scroll.js", "/public/app.js"], undefined, undefined, flatLayout);
+  const scroller = document.querySelector<HTMLElement>(".scroll")!;
+  const count = document.querySelectorAll("li.colophon").length;
+  expect(count, "need a scroll longer than the view").toBeGreaterThan(VIEW / SHEET + 4);
+  scroller.scrollLeft = SHEET * 4;
+  const line = marker("own-far");
+  type(document, line);
+  document.querySelector<HTMLFormElement>(".write-form")!.requestSubmit();
+  await until(() => entriesWith(document, line).length > 0);
+  const li = entriesWith(document, line)[0]!;
+  expect((li as HTMLElement).offsetLeft).toBe(0);
+  await until(() => inView(document, li), 5000);
+  expect(inView(document, li), `scrollLeft ${scroller.scrollLeft}`).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+it("someone else's line arriving while you read far back keeps what you're reading in place", async () => {
+  const { document, errors } = await openPage(["/public/scroll.js", "/public/app.js"], undefined, undefined, flatLayout);
+  const scroller = document.querySelector<HTMLElement>(".scroll")!;
+  scroller.scrollLeft = SHEET * 4;
+  const reading = [...document.querySelectorAll<HTMLElement>("li.colophon")][4]!;
+  const before = reading.getBoundingClientRect().left;
+  liveFrom(document, 600000, "from the far bank");
+  await settle(300);
+  expect(document.querySelector<HTMLElement>("li.colophon")!.querySelector(".colophon-body")!.textContent).toBe(
+    "from the far bank",
+  );
+  expect(reading.getBoundingClientRect().left).toBe(before);
+  expect(scroller.scrollLeft).toBe(SHEET * 5);
+  expect(errors).toEqual([]);
+});
+
+it("Back after following a date link returns the scroll to where you were", async () => {
+  const { window, document, errors } = await openPage(["/public/scroll.js", "/public/app.js"], undefined, undefined, flatLayout);
+  const scroller = document.querySelector<HTMLElement>(".scroll")!;
+  const where = SHEET * 3;
+  scroller.scrollLeft = where;
+  const target = [...document.querySelectorAll<HTMLElement>("li.colophon")][1]!;
+  const link = target.querySelector<HTMLAnchorElement>("a.colophon-link")!;
+  link.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
+  expect(window.location.hash).toBe(`#c-${target.dataset.id}`);
+  await until(() => inView(document, target) && scroller.scrollLeft !== where, 5000);
+  expect(scroller.scrollLeft).not.toBe(where);
+  window.history.back();
+  await until(() => window.location.hash === "" && scroller.scrollLeft === where, 5000);
+  expect(window.location.hash).toBe("");
+  expect(Math.round(scroller.scrollLeft)).toBe(where);
+  expect(errors).toEqual([]);
 });

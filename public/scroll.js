@@ -201,6 +201,131 @@
     if (header) ro.observe(header);
   }
 
+  // The overview strip (contract O): a map of the whole scroll under it,
+  // left edge = newest end, with a window showing what's in view and a
+  // --seal tick for each of the visitor's own lines. Pointer only: the strip
+  // is aria-hidden, and the cue line under it says the same in words.
+  //
+  // Numbering runs oldest = 1, the order the lines were written in, so a
+  // line's number never changes when new ones arrive at the newest end.
+  //
+  // Geometry is read from the DOM only on a layout change (load, resize, an
+  // arrival); a scroll frame does arithmetic on those numbers and writes one
+  // transform and, when it changes, one text node.
+  const strip = document.querySelector(".scroll-overview");
+  const win = strip?.querySelector(".scroll-overview-window");
+  const cue = document.querySelector(".scroll-cue");
+  const list = scroller.querySelector(".colophon-list");
+  const fmt = new Intl.NumberFormat("en-AU");
+  const geo = { count: 0, stride: 1, newestLeft: 0, scrollWidth: 1, clientWidth: 1, stripWidth: 0, winWidth: 0 };
+  let cueText = "";
+  let painting = 0;
+
+  const paint = () => {
+    painting = 0;
+    const left = scroller.scrollLeft;
+    if (win && geo.stripWidth) {
+      const x = (left / geo.scrollWidth) * geo.stripWidth;
+      win.style.transform = `translateX(${Math.min(x, geo.stripWidth - geo.winWidth).toFixed(1)}px)`;
+    }
+    if (cue && geo.count) {
+      // k counts sheets from the newest end; a sheet counts once half in view.
+      const at = (px) => Math.round((px - geo.newestLeft) / geo.stride);
+      const first = Math.max(0, Math.min(geo.count - 1, at(left)));
+      const last = Math.max(first, Math.min(geo.count - 1, at(left + geo.clientWidth) - 1));
+      const hi = geo.count - first;
+      const lo = geo.count - last;
+      const range = hi === lo ? `Line ${fmt.format(hi)}` : `Lines ${fmt.format(lo)}–${fmt.format(hi)}`;
+      const text = `${range} of ${fmt.format(geo.count)} · newest at the left`;
+      if (text !== cueText) {
+        cue.textContent = text;
+        cueText = text;
+      }
+    }
+  };
+  const repaint = () => {
+    if (!painting) painting = requestAnimationFrame(paint);
+  };
+
+  const layout = () => {
+    const items = list ? list.children : [];
+    const newest = list?.lastElementChild;
+    geo.count = items.length;
+    geo.stride = newest?.offsetWidth || 1;
+    geo.newestLeft = newest?.offsetLeft ?? 0;
+    geo.scrollWidth = scroller.scrollWidth || 1;
+    geo.clientWidth = scroller.clientWidth;
+    if (strip && win) {
+      geo.stripWidth = strip.clientWidth;
+      win.style.width = `${((geo.clientWidth / geo.scrollWidth) * 100).toFixed(3)}%`;
+      geo.winWidth = win.offsetWidth;
+      const ticks = [];
+      for (const li of scroller.querySelectorAll(".colophon--mine")) {
+        const tick = document.createElement("span");
+        tick.className = "scroll-overview-tick";
+        tick.style.left = `${(((li.offsetLeft + li.offsetWidth / 2) / geo.scrollWidth) * 100).toFixed(3)}%`;
+        ticks.push(tick);
+      }
+      for (const old of strip.querySelectorAll(".scroll-overview-tick")) old.remove();
+      strip.append(...ticks);
+    }
+    if (cue && !geo.count) cueText = "";
+    paint();
+  };
+  let laying = 0;
+  const relayout = () => {
+    if (!laying)
+      laying = requestAnimationFrame(() => {
+        laying = 0;
+        layout();
+      });
+  };
+
+  scroller.addEventListener("scroll", repaint, { passive: true });
+  window.addEventListener("resize", relayout, { passive: true });
+  if ("ResizeObserver" in window) {
+    // The list grows on every arrival; the scroller and strip change with
+    // the viewport and the band height.
+    const ro = new ResizeObserver(relayout);
+    ro.observe(scroller);
+    if (list) ro.observe(list);
+    if (strip) ro.observe(strip);
+  }
+  layout();
+
+  if (strip) {
+    // Click or drag: centre the view on the pointer. Primary button only;
+    // the gesture belongs to one pointer and ends however that pointer ends.
+    let dragging = null;
+    const jump = (event) => {
+      const r = strip.getBoundingClientRect();
+      const f = Math.max(0, Math.min(1, (event.clientX - r.left) / r.width));
+      moveTo(f * scroller.scrollWidth - scroller.clientWidth / 2);
+    };
+    strip.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || dragging !== null) return;
+      dragging = event.pointerId;
+      strip.setPointerCapture?.(event.pointerId);
+      jump(event);
+    });
+    strip.addEventListener(
+      "pointermove",
+      (event) => {
+        if (event.pointerId === dragging) jump(event);
+      },
+      { passive: true },
+    );
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+      strip.addEventListener(
+        type,
+        (event) => {
+          if (event.pointerId === dragging) dragging = null;
+        },
+        { passive: true },
+      );
+    }
+  }
+
   const fromHash = () => {
     const m = /^#c-(\d+)$/.exec(location.hash);
     if (m) toEntry(m[1]);

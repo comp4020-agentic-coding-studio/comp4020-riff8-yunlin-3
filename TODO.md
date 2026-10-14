@@ -14,7 +14,8 @@ the same commit as the work.
 - [ ] P1 scrolls of ~10,000 lines: fast line-mode wheel and live arrivals
   still cost 50-90 ms long tasks (2,000 lines are clean). A JS render window
   fixed the wheel but broke find-in-page and copy, so it was held back
-- [ ] P2 resizing the window mid-scroll loses the sheet you were reading
+- [ ] P3 a 320-character line of full-width (Chinese) characters overflows
+  its long sheet; the sheet scrolls but shows no sign of hidden text
 
 - [ ] P1 have a Chinese reader review every row of `src/dictionary.ts` and
   `src/dictionary/*.ts` (glyph, pinyin, gloss, search words), now 885 rows,
@@ -28,6 +29,11 @@ the same commit as the work.
   colophon count, and a time-of-day sky tint computed in the browser
 
 ## Done
+
+- [x] P2 L8: a frontispiece (引首) at the oldest end, 題記 in plain ink with
+  the year the scroll was begun; fixed contained sheet widths and arithmetic
+  geometry, so long scrolls cost less and find-in-page and copy reach every
+  line; resizing keeps the sheet you were reading (see the merge after 732be41)
 
 - [x] P2 L7: crossing the length limit is announced once each way; a
   rejected no-JS page marks the text `aria-invalid`; seal results labelled by

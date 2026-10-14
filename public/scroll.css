@@ -1,0 +1,231 @@
+/* The handscroll on /: the colophon list laid out as one long sheet of
+   paper, mounted on silk between two wooden rollers. Newest at the left,
+   reading back in time to the right (docs: README, decisions D1).
+
+   The scroller is a plain LTR overflow-x block and the list is flex
+   row-reverse, so scrollLeft 0 is the newest end with or without script.
+   public/scroll.js only enhances: eased wheel, keys, jumps, and keeping a
+   reader's place when a line arrives.
+
+   Band height: fixed, never from content. It fills the room between the
+   header and the dock (--band-avail, measured by scroll.js; a CSS estimate
+   otherwise), between 18rem and 30rem: blank paper below a short line is
+   the point. A 320-character line plus its foot needs about 25rem; where
+   the band is shorter than that, the body scrolls vertically inside its
+   own sheet rather than being clipped. A fixed height keeps the row's layout independent of
+   content-visibility's placeholders, so nothing jumps as sheets render. */
+
+.handscroll {
+  --band-h: clamp(18rem, var(--band-avail, calc(100dvh - 10rem - var(--dock-h, 7rem))), 30rem);
+
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  margin: 0.4rem 1rem;
+  padding: 0.9rem 0;
+
+  /* Silk mount: a band of brocade above and below the paper. */
+  background-color: var(--silk);
+  background-image:
+    linear-gradient(rgb(0 0 0 / 18%), transparent 0.9rem, transparent calc(100% - 0.9rem), rgb(0 0 0 / 18%)),
+    var(--slub),
+    repeating-linear-gradient(45deg, rgb(255 255 255 / 6%) 0 1px, transparent 1px 1.1rem),
+    repeating-linear-gradient(-45deg, rgb(255 255 255 / 6%) 0 1px, transparent 1px 1.1rem);
+  background-size: auto, 6rem 6rem, auto, auto;
+  background-blend-mode: normal, multiply, normal, normal;
+  box-shadow: 0 0.3rem 1rem rgb(0 0 0 / 28%);
+}
+
+/* The rollers: a wooden stave at each end, its turned knobs standing
+   proud of the silk above and below. */
+.handscroll-roller {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 1.15rem;
+  margin: -1.3rem 0;
+  border-radius: 0.3rem;
+  background: linear-gradient(90deg, var(--wood-dark), var(--wood) 35%, var(--wood-mid) 70%, var(--wood-dark));
+  box-shadow: 0.15rem 0 0.4rem rgb(0 0 0 / 30%);
+}
+
+.handscroll-roller::before,
+.handscroll-roller::after {
+  content: "";
+  position: absolute;
+  left: -0.25rem;
+  width: 1.65rem;
+  height: 0.85rem;
+  border-radius: 0.35rem;
+  background: linear-gradient(var(--wood-dark), var(--wood) 50%, var(--wood-dark));
+}
+
+.handscroll-roller::before {
+  top: -0.4rem;
+}
+
+.handscroll-roller::after {
+  bottom: -0.4rem;
+}
+
+.handscroll-roller--start {
+  margin-left: -0.6rem;
+}
+
+.handscroll-roller--end {
+  margin-right: -0.6rem;
+  box-shadow: -0.15rem 0 0.4rem rgb(0 0 0 / 30%);
+}
+
+/* The paper. Weave lines are translucent --paper-shade, so nothing behind
+   text is darker than that; the background scrolls with the sheets. */
+.scroll {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--band-h);
+  overflow: auto hidden;
+  overscroll-behavior-x: contain;
+  scroll-behavior: auto;
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(0deg, rgb(235 227 211 / 60%) 0 1px, transparent 1px 0.35rem),
+    repeating-linear-gradient(90deg, rgb(235 227 211 / 45%) 0 1px, transparent 1px 0.3rem);
+  background-attachment: local;
+  box-shadow:
+    0 0 0 1px var(--gilt),
+    0 0 0 0.3rem rgb(185 160 106 / 35%);
+  scrollbar-color: var(--granite) transparent;
+  scrollbar-width: thin;
+}
+
+.scroll:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 0.4rem;
+}
+
+.scroll .colophon-list {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: stretch;
+  justify-content: flex-start;
+  width: max-content;
+  min-width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0 0.6rem;
+  list-style: none;
+}
+
+/* One colophon, one sheet: a column of paper with a faint join to the
+   next, not a card. */
+.scroll .colophon {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: clamp(15rem, 72vw, 18rem);
+  padding: 1.3rem 1.2rem 1rem;
+  border: 0;
+  border-left: 1px solid rgb(185 160 106 / 28%);
+  box-shadow: inset 1px 0 0 rgb(255 255 255 / 45%);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 18rem auto 22rem;
+}
+
+.scroll .colophon:last-child {
+  border-left-color: transparent;
+}
+
+.scroll .colophon-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+/* The foot: date, then the seal pressed beside it, closing the passage. */
+.scroll .colophon-foot {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: row-reverse;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.scroll .colophon-foot .colophon-seal {
+  position: static;
+  flex: none;
+}
+
+/* The meaning opens upward from the foot, inside the sheet, since the
+   band clips anything that escapes it vertically. */
+.scroll .colophon-foot .seal-meaning {
+  top: auto;
+  bottom: calc(100% + 0.4rem);
+  left: 0;
+  max-width: 100%;
+}
+
+.scroll .empty-note {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 1rem;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+/* A permalinked line: a brief gilt ring, fading. Opacity only. */
+.scroll .colophon--target::after {
+  content: "";
+  position: absolute;
+  inset: 0.3rem;
+  pointer-events: none;
+  border-radius: 0.2rem;
+  box-shadow: 0 0 0 2px var(--gilt);
+  opacity: 0;
+  animation: scroll-target-glow 2.4s ease-out;
+}
+
+@keyframes scroll-target-glow {
+  15%,
+  45% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll .colophon--target::after {
+    opacity: 1;
+    animation: none;
+  }
+}
+
+@media print {
+  .scroll {
+    height: auto;
+    overflow: visible;
+  }
+
+  .scroll .colophon-list {
+    flex-flow: column;
+    width: auto;
+  }
+
+  .scroll .colophon {
+    width: auto;
+    content-visibility: visible;
+  }
+
+  .handscroll-roller {
+    display: none;
+  }
+}

@@ -96,9 +96,10 @@
   scrollbar-width: thin;
 }
 
+/* The focus ring sits inside the paper: on the dark silk it would vanish. */
 .scroll:focus-visible {
   outline: 2px solid var(--ink);
-  outline-offset: 0.4rem;
+  outline-offset: -0.3rem;
 }
 
 .scroll .colophon-list {

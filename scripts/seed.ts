@@ -30,7 +30,8 @@ const LINES = [
 ];
 const LONG =
   "A long line, the kind people write when they've been sitting with a painting for a while and finally decide to leave something behind: the light on the granite, the way the path bends out of sight, a friend who would have liked it, the smell of ink, the hum of the heater, and a promise to come back in spring.";
-const UNBROKEN = "x".repeat(320);
+// Not "x": spec/colophon.test.ts asserts a run of x's is never stored.
+const UNBROKEN = "w".repeat(320);
 
 const tokens = Array.from({ length: 40 }, () => randomUUID());
 const insert = db.prepare("INSERT INTO colophons (token, body, created_at, seal, ink) VALUES (?, ?, ?, ?, ?)");

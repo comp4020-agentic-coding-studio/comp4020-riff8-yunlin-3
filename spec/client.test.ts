@@ -25,8 +25,9 @@ class FakeEventSource {
 
 async function openPage(
   scripts: string[] = ["/public/app.js"],
+  visitor?: string,
 ): Promise<{ window: JSDOM["window"]; document: Document; errors: string[] }> {
-  const cookie = await newVisitor();
+  const cookie = visitor ?? (await newVisitor());
   const html = await (await fetch(new URL("/", baseUrl), { headers: { Cookie: cookie } })).text();
   const sources = await Promise.all(scripts.map(async (src) => (await fetch(new URL(src, baseUrl))).text()));
   const errors: string[] = [];
@@ -266,4 +267,32 @@ it("after a refused line, focus is back in the text and the button was never dis
   expect(everDisabled).toBe(false);
   expect(button.disabled).toBe(false);
   expect(button.hasAttribute("aria-disabled")).toBe(false);
+});
+
+// The overview strip (decision D4): pointer only, so the cue line says in
+// words what the red ticks show, and the strip itself never takes focus.
+it("the strip's cue says your lines are in red once you've written one, and the strip stays out of the tab order", async () => {
+  const cookie = await newVisitor();
+  const res = await fetch(new URL("/colophons", baseUrl), {
+    method: "POST",
+    redirect: "manual",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Cookie: cookie },
+    body: new URLSearchParams({ body: marker("strip-mine") }).toString(),
+  });
+  expect(res.status).toBe(303);
+  const { document, errors } = await openPage(["/public/scroll.js", "/public/app.js"], cookie);
+  await settle(100);
+  expect(document.querySelector(".scroll-cue")!.textContent).toContain("yours in red");
+  const strip = document.querySelector<HTMLElement>(".scroll-overview")!;
+  expect(strip.title).toBe("Jump along the scroll");
+  expect(strip.getAttribute("aria-hidden")).toBe("true");
+  expect(strip.hasAttribute("tabindex")).toBe(false);
+  expect(strip.querySelector("[tabindex], a[href], button, input, summary")).toBeNull();
+  expect(errors).toEqual([]);
+});
+
+it("a visitor with no lines of their own isn't told about red", async () => {
+  const { document } = await openPage(["/public/scroll.js", "/public/app.js"]);
+  await settle(100);
+  expect(document.querySelector(".scroll-cue")!.textContent).not.toContain("red");
 });

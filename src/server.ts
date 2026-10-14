@@ -109,6 +109,11 @@ function send(
   compress = true,
 ): void {
   const headers: Record<string, string> = { "Content-Type": type };
+  // / and /seal show which seal this browser holds and which lines are its
+  // own: never serve a stale copy of them from the cache or history (D5).
+  if (type === HTML && (req.url === "/" || req.url?.startsWith("/?") || req.url?.startsWith("/seal") || req.url?.startsWith("/colophons"))) {
+    headers["Cache-Control"] = "no-store";
+  }
   let payload: string | Buffer = body;
   if (compress) {
     headers["Vary"] = "Accept-Encoding";

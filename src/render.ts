@@ -262,7 +262,7 @@ function sealList(all: SealEntry[], page: SealPage, ownGlyph: string | undefined
   const n = pageNumber(page.page, pages);
   const shown = all.slice((n - 1) * SEALS_PER_PAGE, n * SEALS_PER_PAGE);
   const link = (to: number, text: string, rel: string) =>
-    `<a href="${base}${to > 1 ? `&amp;page=${to}` : ""}" rel="${rel}">${text}</a>`;
+    `<a href="${base}${to > 1 ? `&amp;page=${to}` : ""}#results" rel="${rel}">${text}</a>`;
   const nav =
     pages > 1
       ? `<nav class="seal-pages" aria-label="Pages of seals">${n > 1 ? link(n - 1, "← Previous", "prev") : ""}
@@ -276,16 +276,18 @@ function themeLinks(current: string | undefined): string {
             <h2 id="themes-heading">Or browse by theme</h2>
             <ul>${THEMES.map(
               (t) =>
-                `<li><a href="/seal?theme=${t.key}"${t.key === current ? ` aria-current="page"` : ""}>${escapeHtml(t.name)}</a></li>`,
+                `<li><a href="/seal?theme=${t.key}#results"${t.key === current ? ` aria-current="page"` : ""}>${escapeHtml(t.name)}</a></li>`,
             ).join("")}</ul>
           </nav>`;
 }
 
 const seals = (n: number) => `${countFmt.format(n)} ${n === 1 ? "seal" : "seals"}`;
 
+// One compact card per seal: the glyph large, pinyin and gloss small, then
+// its state (yours, taken) or a Take button whose name carries the meaning.
 function sealResult(entry: SealEntry, page: SealPage, ownGlyph: string | undefined): string {
   const label = `<span class="result-glyph" lang="zh-Hant">${entry.glyph}</span> ${escapeHtml(entry.pinyin)}: ${escapeHtml(entry.gloss)}`;
-  if (entry.glyph === ownGlyph) return `<li class="seal-result">${label} <em>— yours</em></li>`;
+  if (entry.glyph === ownGlyph) return `<li class="seal-result seal-result--yours">${label} <em>— yours</em></li>`;
   if (page.claimed.has(entry.glyph)) return `<li class="seal-result seal-result--taken">${label} <em>— taken</em></li>`;
   return `<li class="seal-result">${label}
               <form method="post" action="/seal" class="claim-form">
@@ -316,19 +318,19 @@ export function renderSealChooser(page: SealPage): string {
   if (page.query) {
     results =
       page.results.length > 0
-        ? `<h2 class="seal-count">${seals(page.results.length)} for “${escapeHtml(page.query)}”</h2>
+        ? `<h2 class="seal-count" id="results" tabindex="-1">${seals(page.results.length)} for “${escapeHtml(page.query)}”</h2>
           ${sealList(page.results, page, ownGlyph, `/seal?q=${encodeURIComponent(page.query)}`)}`
         : `<p>No seal for that word. Try ${page.suggestions
             .map((w) => `<a href="/seal?q=${encodeURIComponent(w)}">${escapeHtml(w)}</a>`)
             .join(", ")}.</p>`;
   } else if (theme) {
     const all = sealsByTheme(theme.key);
-    results = `<h2 class="seal-count">${escapeHtml(theme.name)}: ${seals(all.length)}</h2>
+    results = `<h2 class="seal-count" id="results" tabindex="-1">${escapeHtml(theme.name)}: ${seals(all.length)}</h2>
           ${sealList(all, page, ownGlyph, `/seal?theme=${theme.key}`)}`;
   }
 
   const body = `
-      <div class="sheet sheet--colophons">
+      <div class="sheet sheet--colophons sheet--seals">
         ${header("choose a seal by meaning", true)}
         <main>
           <p>You sign with <strong><span lang="zh-Hant">${own.entry.glyph}</span></strong>

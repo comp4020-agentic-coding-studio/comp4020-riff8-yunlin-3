@@ -34,11 +34,29 @@
 
   /* A small silk-slub tile, tiled once and multiplied; never a live filter
      over a large area. */
+  /* Room the fixed dock takes at the bottom of the viewport. CSS is
+     authoritative so the page clears the dock with no script; app.js may
+     refine it by measuring. */
+  --dock-h: 9.75rem;
+  --dock-safe: env(safe-area-inset-bottom, 0px);
+
   --slub: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.05 .9' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .2 0 0 0 0 .18 0 0 0 0 .12 0 0 0 -1.2 .62'/%3E%3C/filter%3E%3Crect width='96' height='96' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 * {
   box-sizing: border-box;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 html {
@@ -552,7 +570,8 @@ textarea,
 textarea {
   display: block;
   min-height: 5.5rem;
-  resize: vertical;
+  resize: none;
+  field-sizing: content;
   background: #fbf8f2;
   color: var(--entry-ink);
 }
@@ -661,12 +680,6 @@ textarea {
 
 .swatch input:focus-visible {
   outline: none;
-}
-
-.write-actions {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
 }
 
 button {
@@ -918,6 +931,244 @@ footer {
   display: none;
 }
 
+
+/* The dock: the writing form, fixed to the bottom of the viewport by CSS
+   alone, outside the scroll's flow. A paper panel under a strip of mount
+   silk; the body is padded by --dock-h so nothing stays covered. Grows
+   upward only, so the button never moves under a finger mid-tap. */
+body.page-scroll {
+  padding-bottom: calc(var(--dock-h) + var(--dock-safe) + 0.75rem);
+}
+
+.dock {
+  position: fixed;
+  inset-inline: 0;
+  bottom: var(--dock-lift, 0px);
+  z-index: 40;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "error error error"
+    "well inks button"
+    "count seal seal";
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+  padding: 0.7rem max(1rem, calc((100% - 72rem) / 2)) calc(0.8rem + env(safe-area-inset-bottom, 0px));
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(0deg, rgb(235 227 211 / 60%) 0 1px, transparent 1px 0.35rem),
+    repeating-linear-gradient(90deg, rgb(235 227 211 / 45%) 0 1px, transparent 1px 0.3rem);
+  border-top: 1px solid var(--gilt);
+  box-shadow:
+    0 -0.35rem 0 var(--silk),
+    0 -0.4rem 0 var(--silk-dark),
+    0 -0.4rem 1.2rem rgb(0 0 0 / 25%);
+}
+
+.dock .write-form {
+  display: contents;
+}
+
+.dock .form-error {
+  grid-area: error;
+  margin: 0;
+}
+
+.dock .inkwell {
+  grid-area: well;
+}
+
+.dock textarea {
+  min-height: 4.2rem;
+  max-height: 7.5rem;
+  padding: 0.45rem 0.6rem;
+}
+
+.dock .inks {
+  grid-area: inks;
+  flex-wrap: nowrap;
+  gap: 0.3rem;
+}
+
+/* In the dock the chip is the radio: the native circle is laid invisibly
+   over the whole swatch (so the hit area is the swatch), and the checked
+   ring and focus outline are drawn on the label. */
+.dock .swatch {
+  position: relative;
+  padding-inline: 0.55rem 0.7rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.dock .swatch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.dock .swatch:has(input:checked) {
+  box-shadow: inset 0 0 0 2px var(--entry-ink);
+}
+
+.dock .swatch:has(input:checked) .swatch-chip {
+  box-shadow: 0 0 0 2px #fbf8f2, 0 0 0 3.5px var(--entry-ink);
+}
+
+.dock button[type="submit"] {
+  grid-area: button;
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.dock .count {
+  grid-area: count;
+  margin: 0;
+}
+
+.dock-seal {
+  grid-area: seal;
+  justify-self: end;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+/* A 44px-tall hit area without making the seal line any taller. */
+.dock-seal a {
+  display: inline-block;
+  padding: 0.65rem 0.4rem;
+  margin: -0.65rem -0.4rem;
+  color: var(--ink);
+}
+
+.dock-glyph {
+  display: inline-block;
+  padding: 0 0.15rem;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  color: var(--ink);
+  border: 1px solid var(--ink-soft);
+  border-radius: 2px;
+}
+
+.dock-glyph--chosen {
+  color: var(--paper);
+  background: var(--ink-soft);
+}
+
+/* Tablet and narrow desktop: the text gets its own row. */
+@media (48rem <= width < 76rem) {
+  :root {
+    --dock-h: 10.5rem;
+  }
+
+  .dock {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "error error"
+      "well well"
+      "inks button"
+      "count seal";
+  }
+
+  .dock textarea {
+    min-height: 2.75rem;
+  }
+}
+
+/* Phone: compact until focused. One line of text, five 44px ink chips
+   beside the button, the seal line under them. Focus anywhere in the dock
+   opens the text to three lines and shows the count beside the seal line;
+   the rows below the button keep their height, so it stays put. */
+@media (width < 48rem) {
+  :root {
+    --dock-h: 9.25rem;
+  }
+
+  .dock {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "error error"
+      "well well"
+      "inks button"
+      "seal count";
+    gap: 0.4rem 0.5rem;
+    padding-inline: 0.75rem;
+  }
+
+  .dock textarea {
+    min-height: 2.75rem;
+    max-height: 2.75rem;
+    padding-block: 0.4rem;
+    overflow-y: auto;
+  }
+
+  .dock:focus-within textarea {
+    min-height: 5.6rem;
+    max-height: 5.6rem;
+  }
+
+  .dock .inks {
+    flex-wrap: nowrap;
+    gap: 0.25rem;
+  }
+
+  .dock .swatch {
+    position: relative;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+  }
+
+  .dock .swatch-chip {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .dock .swatch-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .dock .count {
+    display: none;
+    justify-self: end;
+    font-size: 0.8rem;
+  }
+
+  .dock:focus-within .count {
+    display: block;
+  }
+
+  .dock-seal {
+    justify-self: start;
+    font-size: 0.8rem;
+  }
+}
+
+/* Very narrow phones: the chips shrink their gap before anything else. */
+@media (width < 23rem) {
+  .dock {
+    padding-inline: 0.5rem;
+  }
+
+  .dock .inks {
+    gap: 0.1rem;
+  }
+
+  .dock button[type="submit"] {
+    padding-inline: 0.7rem;
+  }
+}
+
 @media (width <= 600px) {
   .mount {
     padding-top: 0.75rem;
@@ -996,7 +1247,7 @@ footer {
   .fan-veil,
   .fan-ribs,
   .lantern-sky,
-  .write,
+  .dock,
   .divider,
   .painting-frame::after {
     display: none;

@@ -124,6 +124,33 @@
   const form = document.querySelector(".write-form");
   if (form) enhanceForm(form);
 
+  // The dock's room. CSS sets --dock-h per breakpoint so the page clears
+  // the dock with no script; here it's refined to the dock's real height,
+  // and the dock rides above an on-screen keyboard where visualViewport
+  // reports one.
+  const dockEl = document.querySelector(".dock");
+  if (dockEl) {
+    const root = document.documentElement;
+    if (typeof ResizeObserver === "function") {
+      new ResizeObserver(() => {
+        // Only ever grow the room: the focused dock expands, and the page
+        // shouldn't jump back when it collapses mid-read.
+        const h = dockEl.offsetHeight;
+        const now = parseFloat(root.style.getPropertyValue("--dock-h")) || 0;
+        if (h > now) root.style.setProperty("--dock-h", `${h}px`);
+      }).observe(dockEl);
+    }
+    const vv = window.visualViewport;
+    if (vv) {
+      const lift = () => {
+        const covered = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        dockEl.style.setProperty("--dock-lift", `${Math.round(covered)}px`);
+      };
+      vv.addEventListener("resize", lift, { passive: true });
+      vv.addEventListener("scroll", lift, { passive: true });
+    }
+  }
+
   function enhanceForm(form) {
     const textarea = form.querySelector("textarea");
     const well = form.querySelector(".inkwell");

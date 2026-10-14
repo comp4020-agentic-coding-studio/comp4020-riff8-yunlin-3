@@ -27,7 +27,14 @@ function divider(): string {
   return `<div class="divider" aria-hidden="true">${SPRUCE}${BOULDER}${SPRUCE}</div>`;
 }
 
-function layout(title: string, body: string): string {
+interface LayoutOptions {
+  // Placed after the mount, outside the scroll's flow: the dock, the lantern
+  // sky and scripts.
+  after?: string;
+  bodyClass?: string;
+}
+
+function layout(title: string, body: string, { after = "", bodyClass }: LayoutOptions = {}): string {
   return `<!doctype html>
 <html lang="en-AU">
   <head>
@@ -42,7 +49,7 @@ function layout(title: string, body: string): string {
     <link rel="stylesheet" href="/public/styles.css" />
     <script src="/public/fan.js"></script>
   </head>
-  <body>
+  <body${bodyClass ? ` class="${bodyClass}"` : ""}>
     <div class="fan-veil" aria-hidden="true"></div>
     <div class="fan-ribs" aria-hidden="true"></div>
     <div class="mount">
@@ -52,6 +59,7 @@ function layout(title: string, body: string): string {
       </div>
       <div class="roller roller--bottom" aria-hidden="true"></div>
     </div>
+    ${after}
   </body>
 </html>
 `;
@@ -126,7 +134,7 @@ function inkSwatches(checkedInk: string = DEFAULT_INK): string {
     (ink) => `<label class="swatch ${inkClass(ink.key)}">
               <input type="radio" name="ink" value="${ink.key}"${ink.key === checked ? " checked" : ""} />
               <span class="swatch-chip" aria-hidden="true"></span>
-              <span><span lang="zh-Hant">${ink.hanzi}</span> ${escapeHtml(ink.name)}</span>
+              <span class="swatch-name"><span lang="zh-Hant">${ink.hanzi}</span> ${escapeHtml(ink.name)}</span>
             </label>`,
   ).join("\n            ");
 }
@@ -180,42 +188,41 @@ export function renderIndex(colophons: Colophon[], ownToken: string, error?: str
             ${legend(colophons)}
           </section>
 
-          ${divider()}
-
-          <section aria-labelledby="write-heading" class="write">
-            <h2 id="write-heading">Add yours</h2>
-            ${message ? `<p class="form-error" id="form-error" role="alert">${escapeHtml(message)}</p>` : ""}
-            <form method="post" action="/colophons" class="write-form" data-own-seal="${own.entry.glyph}">
-              <label for="body">A line for the margin</label>
-              <div class="inkwell">
-                <textarea id="body" name="body" maxlength="${MAX_BODY_LENGTH}" rows="3" required
-                  aria-describedby="body-count${message ? " form-error" : ""}">${draft?.body ? `\n${escapeHtml(draft.body)}` : ""}</textarea>
-              </div>
-              <p id="body-count" class="count">Up to ${MAX_BODY_LENGTH} characters.</p>
-              <fieldset class="inks">
-                <legend>Ink</legend>
-                ${inkSwatches(draft?.ink)}
-              </fieldset>
-              <div class="write-actions">
-                <button type="submit">Write it in</button>
-                ${BOULDER}
-              </div>
-            </form>
-          </section>
         </main>
-        <footer>
-          <p>You sign with <strong><span lang="zh-Hant">${own.entry.glyph}</span></strong>
-            (${escapeHtml(own.entry.pinyin)}: ${escapeHtml(own.entry.gloss)})${
-              own.chosen ? ", the seal you chose" : ", given to your browser at random"
-            } — remembered by your browser, not by a name.
-            <a href="/seal">${own.chosen ? "Change your seal" : "Choose a seal by meaning"}</a>.</p>
-        </footer>
       </div>
-      <div class="lantern-sky" aria-hidden="true"></div>
-      <script src="/public/app.js" defer></script>
   `;
 
-  return layout("Colophon", body);
+  return layout("Colophon", body, { after: dock(own, message, draft), bodyClass: "page-scroll" });
+}
+
+// The writing dock: fixed to the bottom of the viewport by CSS alone, outside
+// the scroll's flow, so it never needs a scroll to reach and still works with
+// no script. The error paragraph stays the sibling just before the form,
+// where app.js's showError() puts its own.
+function dock(own: Seal, message: string | undefined, draft: Draft | undefined): string {
+  const meaning = `${own.entry.glyph}, ${own.entry.pinyin}: ${own.entry.gloss}`;
+  const how = own.chosen ? "the seal you chose" : "given to your browser at random";
+  return `<section class="dock" aria-labelledby="write-heading">
+      <h2 id="write-heading" class="visually-hidden">Add yours</h2>
+      ${message ? `<p class="form-error" id="form-error" role="alert">${escapeHtml(message)}</p>` : ""}
+      <form method="post" action="/colophons" class="write-form" data-own-seal="${own.entry.glyph}">
+        <label for="body" class="visually-hidden">A line for the margin</label>
+        <div class="inkwell">
+          <textarea id="body" name="body" maxlength="${MAX_BODY_LENGTH}" rows="2" required
+            placeholder="A line for the margin…"
+            aria-describedby="body-count${message ? " form-error" : ""}">${draft?.body ? `\n${escapeHtml(draft.body)}` : ""}</textarea>
+        </div>
+        <p id="body-count" class="count">Up to ${MAX_BODY_LENGTH} characters.</p>
+        <fieldset class="inks">
+          <legend class="visually-hidden">Ink</legend>
+          ${inkSwatches(draft?.ink)}
+        </fieldset>
+        <button type="submit">Write it in</button>
+      </form>
+      <p class="dock-seal">You sign with <span class="dock-glyph${own.chosen ? " dock-glyph--chosen" : ""}" lang="zh-Hant" title="${escapeHtml(meaning)}">${own.entry.glyph}</span> · <a href="/seal" aria-label="${escapeHtml(`Change your seal: you sign with ${meaning}, ${how}`)}">Change</a></p>
+    </section>
+    <div class="lantern-sky" aria-hidden="true"></div>
+    <script src="/public/app.js" defer></script>`;
 }
 
 export interface SealPage {

@@ -5,8 +5,9 @@ the same commit as the work.
 
 ## Now
 
-- Nothing in progress. The crit 8 pod prompt is done and `prompt.md` is
-  deleted; pick up from Next.
+- Crit 9 pod prompt (team run, aimed at crit 10 "Fly by instruments"):
+  M2 in progress: the colophons become a right-to-left handscroll, a fixed
+  writing dock, smooth scrolling, the dictionary to 800+.
 
 ## Next
 
@@ -21,6 +22,10 @@ the same commit as the work.
   colophon count, and a time-of-day sky tint computed in the browser
 
 ## Done
+
+- [x] P0 who did what, in the logs: logfmt `who=<glyph>#<tag>`, never a
+  token or body; ADR 0002; error boundary so a half-sent body can't crash
+  the server; a rejected plain POST answers 422 with the text kept (ba16ff7)
 
 - [x] P0 `CLAUDE.md` working agreement, `TODO.md` (fe07cb6)
 - [x] P0 SSE live append + `Last-Event-ID` reconnect + tests (a9d4284)

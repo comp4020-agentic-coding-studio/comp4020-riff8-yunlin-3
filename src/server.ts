@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { readFile, readFileSync } from "node:fs";
+import { readdirSync, readFile, readFileSync } from "node:fs";
 import { extname } from "node:path";
 import { addColophon, claimedGlyphs, claimOf, claimSeal, listColophons, releaseSeal } from "./db.ts";
 import { sealToken } from "./cookies.ts";
@@ -14,13 +14,31 @@ import {
 } from "./render.ts";
 import { renderMarkdown } from "./markdown.ts";
 import { broadcast, openStream, setEntryRenderer } from "./live.ts";
-import { inkKey } from "./ink.ts";
+import { DEFAULT_INK, inkKey } from "./ink.ts";
 import { lookupGlyph, searchSeals, suggestWords } from "./dictionary.ts";
-import { entrySeal } from "./seal.ts";
+import { currentSeal, entrySeal } from "./seal.ts";
+import { log, who } from "./log.ts";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const README = readFileSync("README.md", "utf8");
-const ADR_0001 = readFileSync("docs/adr/0001-seal-claims.md", "utf8");
+
+// Every decision record, read once at startup and served at /adr/<slug>/.
+// A request only ever looks a slug up in this map; no part of the URL reaches
+// the filesystem. A missing docs/adr/ or file just means fewer ADRs.
+const ADR_KICKERS: Record<string, string> = {
+  "0001-seal-claims": "a decision about several people at once",
+  "0002-who-did-what": "who did what, in the logs",
+};
+const ADRS = new Map<string, { number: string; markdown: string }>();
+try {
+  for (const file of readdirSync("docs/adr")) {
+    const m = /^((\d{4})-[a-z0-9-]+)\.md$/.exec(file);
+    if (!m) continue;
+    try {
+      ADRS.set(m[1]!, { number: m[2]!, markdown: readFileSync(`docs/adr/${file}`, "utf8") });
+    } catch {}
+  }
+} catch {}
 
 const MIME: Record<string, string> = {
   ".avif": "image/avif",
@@ -71,7 +89,12 @@ async function readBody(req: import("node:http").IncomingMessage): Promise<strin
   return tooLarge ? undefined : Buffer.concat(chunks).toString("utf8");
 }
 
-const server = createServer(async (req, res) => {
+// The glyph a visitor signs with right now, before whatever they're doing.
+function actor(token: string): string {
+  return who(token, currentSeal(token, claimOf(token)).entry.glyph);
+}
+
+async function handle(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse): Promise<void> {
   const url = new URL(req.url ?? "/", "http://internal");
   const { token, setCookie } = sealToken(req.headers.cookie);
   if (setCookie) res.setHeader("Set-Cookie", setCookie);
@@ -91,6 +114,7 @@ const server = createServer(async (req, res) => {
   if (req.method === "POST" && url.pathname === "/colophons") {
     const raw = await readBody(req);
     if (raw === undefined) {
+      log("colophon.rejected", { who: actor(token), reason: "too-large" });
       res.writeHead(413, { "Content-Type": "text/plain; charset=utf-8" });
       res.end("payload too large");
       return;
@@ -105,12 +129,17 @@ const server = createServer(async (req, res) => {
     else if (ink === undefined) error = "ink";
 
     if (error) {
+      log("colophon.rejected", { who: actor(token), reason: error, len: body.length });
       if (wantsJson(req)) {
         res.writeHead(422, { "Content-Type": "application/json; charset=utf-8" });
         res.end(JSON.stringify({ error, message: errorMessage(error) }));
       } else {
-        res.writeHead(303, { Location: `/?error=${error}` });
-        res.end();
+        // Without JavaScript, a redirect would lose what they wrote. Answer
+        // with the page itself, the text back in the box (escaped by
+        // renderIndex) and their ink still chosen, so they can fix and resend.
+        const draft = { body: (params.get("body") ?? "").slice(0, 2000), ink: ink ?? DEFAULT_INK };
+        res.writeHead(422, { "Content-Type": "text/html; charset=utf-8" });
+        res.end(renderIndex(listColophons(), token, error, draft));
       }
       return;
     }
@@ -118,7 +147,9 @@ const server = createServer(async (req, res) => {
     // The seal in force right now is snapshotted onto the row; the live event
     // goes out from this same path, after the insert, so only a confirmed
     // colophon ever travels.
+    const writer = actor(token);
     const colophon = addColophon(token, body, claimOf(token) ?? null, ink!);
+    log("colophon.written", { who: writer, id: colophon.id, ink: ink!, len: body.length });
     broadcast(colophon);
 
     if (wantsJson(req)) {
@@ -134,6 +165,13 @@ const server = createServer(async (req, res) => {
       res.writeHead(303, { Location: "/" });
       res.end();
     }
+    return;
+  }
+
+  // A 422 page leaves /colophons in the address bar; a reload there is a GET.
+  if (req.method === "GET" && url.pathname === "/colophons") {
+    res.writeHead(303, { Location: "/" });
+    res.end();
     return;
   }
 
@@ -174,15 +212,22 @@ const server = createServer(async (req, res) => {
 
     // Glyphs only ever come from the dictionary; Location headers are
     // percent-encoded, since a raw non-ASCII header value throws in node:http.
+    // A client's unknown glyph is never logged; a dictionary glyph is safe to.
+    const visitor = actor(token);
     let location: string;
     if (glyph === "") {
+      const held = claimOf(token);
       releaseSeal(token);
+      if (held) log("seal.released", { who: visitor, seal: held });
       location = "/seal?released=1";
     } else if (!lookupGlyph(glyph)) {
+      log("seal.refused", { who: visitor, reason: "unknown" });
       location = `/seal?q=${q}&error=unknown`;
     } else if (claimSeal(token, glyph) === "claimed") {
+      log("seal.claimed", { who: visitor, seal: glyph });
       location = `/seal?claimed=${encodeURIComponent(glyph)}`;
     } else {
+      log("seal.refused", { who: visitor, reason: "taken", seal: glyph });
       location = `/seal?q=${q}&error=taken&glyph=${encodeURIComponent(glyph)}`;
     }
     res.writeHead(303, { Location: location });
@@ -190,9 +235,17 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === "GET" && url.pathname === "/adr/0001-seal-claims/") {
+  const adr = req.method === "GET" ? /^\/adr\/([a-z0-9-]+)\/$/.exec(url.pathname) : null;
+  const record = adr ? ADRS.get(adr[1]!) : undefined;
+  if (adr && record) {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(renderReadme(renderMarkdown(ADR_0001), "ADR 0001 — Colophon", "a decision about several people at once"));
+    res.end(
+      renderReadme(
+        renderMarkdown(record.markdown),
+        `ADR ${record.number} — Colophon`,
+        ADR_KICKERS[adr[1]!] ?? "a decision record",
+      ),
+    );
     return;
   }
 
@@ -224,6 +277,27 @@ const server = createServer(async (req, res) => {
 
   res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
   res.end("not found");
+}
+
+// One error boundary for every request. An async handler's rejection is
+// otherwise unhandled, and Node exits on one: a client that sends half its
+// declared Content-Length and hangs up made the body read throw and took the
+// whole server down for every reader. Logs the path only, never a body,
+// cookie or query string.
+const server = createServer((req, res) => {
+  handle(req, res).catch((err: unknown) => {
+    let path = "?";
+    try {
+      path = new URL(req.url ?? "/", "http://internal").pathname;
+    } catch {}
+    log("error", { path, code: (err as { code?: string })?.code ?? "?" });
+    if (!res.headersSent && !res.destroyed) {
+      res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("server error");
+    } else if (!res.writableEnded) {
+      res.destroy();
+    }
+  });
 });
 
 server.listen(PORT, "0.0.0.0", () => {

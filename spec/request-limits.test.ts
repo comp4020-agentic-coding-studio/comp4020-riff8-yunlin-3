@@ -1,3 +1,4 @@
+import { connect } from "node:net";
 import { expect, inject, it } from "vitest";
 
 // A crafted request can skip the form's own maxlength="320" the same way
@@ -20,6 +21,29 @@ it("an oversized request body is rejected, not fully buffered", async () => {
 });
 
 it("the server still answers normal requests right after an oversized one", async () => {
+  const res = await fetch(new URL("/", baseUrl));
+  expect(res.status).toBe(200);
+});
+
+// A client that declares a body, sends part of it and hangs up makes the
+// request stream throw "aborted" inside the handler. Before the error
+// boundary in src/server.ts, that unhandled rejection exited the whole
+// process: one half-sent request took the scroll down for every reader.
+it("a request that hangs up halfway through its body doesn't take the server down", async () => {
+  const { hostname, port } = new URL(baseUrl);
+  for (let i = 0; i < 3; i++) {
+    await new Promise<void>((resolve) => {
+      const socket = connect(Number(port || 80), hostname, () => {
+        socket.write(
+          "POST /colophons HTTP/1.1\r\nHost: x\r\nContent-Type: application/x-www-form-urlencoded\r\n" +
+            "Content-Length: 100\r\n\r\nbody=half",
+          () => setTimeout(() => (socket.destroy(), resolve()), 100),
+        );
+      });
+      socket.on("error", () => resolve());
+    });
+  }
+  await new Promise((r) => setTimeout(r, 200));
   const res = await fetch(new URL("/", baseUrl));
   expect(res.status).toBe(200);
 });

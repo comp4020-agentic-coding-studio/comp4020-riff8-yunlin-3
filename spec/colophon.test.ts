@@ -41,22 +41,25 @@ it("a written colophon is still there on a later request", async () => {
   expect(text).toContain(marker);
 });
 
+// prompt.md §8 T2 and decisions.md D1: a rejected plain-form POST answers
+// 422 with the page itself, the text still in the box, not a redirect.
 it("an empty colophon is rejected, not stored", async () => {
   const { cookie } = await index();
   const res = await write("   ", cookie);
-  expect(res.status).toBe(303);
-  expect(res.headers.get("location")).toBe("/?error=empty");
+  expect(res.status).toBe(422);
+  expect(await res.text()).toContain('class="form-error"');
 });
 
 it("an over-length colophon is rejected rather than truncated", async () => {
   const { cookie } = await index();
   const tooLong = "x".repeat(400);
   const res = await write(tooLong, cookie);
-  expect(res.status).toBe(303);
-  expect(res.headers.get("location")).toBe("/?error=long");
+  expect(res.status).toBe(422);
+  expect(await res.text()).toContain('class="form-error"');
 
   const { text } = await index(cookie);
   expect(text).not.toContain(tooLong);
+  expect(text).not.toContain("x".repeat(320));
 });
 
 // Slices out just the one <li> the marker landed in, so a false match against

@@ -77,7 +77,7 @@ export const MIND = [
   e("定", "dìng", "settled", "settled, steady, fixed, calm"),
   e("放", "fàng", "to let go", "release, free, let go"),
   e("自", "zì", "self", "self, oneself, natural"),
-  e("吾", "wú", "I, me", "i, me, myself"),
+  e("吾", "wú", "I, me", "me, myself"),
   e("覺", "jué", "to awaken, to be aware", "awake, aware, realise, realize, conscious"),
 
   // Batch 4: feelings, kin, the table, study, virtues.

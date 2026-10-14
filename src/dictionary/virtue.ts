@@ -42,7 +42,7 @@ export const VIRTUE = [
   e("淑", "shū", "virtuous, gentle", "gentle, virtuous, refined"),
   e("雅", "yǎ", "elegant", "elegant, refined, graceful, grace"),
   e("儉", "jiǎn", "frugal", "frugal, thrifty"),
-  e("節", "jié", "integrity, moderation", "integrity, moderation, principle, festival"),
+  e("節", "jié", "integrity, moderation", "integrity, moderation, principle"),
   e("潔", "jié", "pure, clean", "pure, clean, spotless"),
   e("貞", "zhēn", "steadfast", "steadfast, chaste, faithful, constant"),
   e("恭", "gōng", "respectful", "respectful, courteous, polite"),

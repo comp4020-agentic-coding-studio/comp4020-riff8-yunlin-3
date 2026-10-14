@@ -30,7 +30,7 @@ export const WEATHER = [
   e("晶", "jīng", "crystal, sparkling", "crystal, sparkle, glitter"),
   e("虹", "hóng", "rainbow", "rainbow"),
   e("霞", "xiá", "rosy clouds", "sunset glow, afterglow, rosy clouds"),
-  e("霖", "lín", "long rain", "drizzle, continuous rain, downpour"),
+  e("霖", "lín", "long rain", "continuous rain, steady rain, long rain"),
   e("霽", "jì", "clearing after rain", "clearing, sky clears, after rain"),
   e("雷", "léi", "thunder", "thunder, thunderclap"),
   e("冰", "bīng", "ice", "ice, frozen, icy"),

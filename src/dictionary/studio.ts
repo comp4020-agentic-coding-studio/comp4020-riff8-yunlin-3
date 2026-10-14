@@ -63,7 +63,7 @@ export const STUDIO = [
   e("存", "cún", "to keep", "keep, preserve, save, store"),
   e("寶", "bǎo", "treasure", "treasure, precious, jewel"),
   e("齋", "zhāi", "studio", "studio, study, retreat"),
-  e("軒", "xuān", "a studio with a porch", "porch, veranda, verandah"),
+  e("軒", "xuān", "pavilion, veranda", "porch, veranda, verandah"),
   e("庵", "ān", "hermitage", "hermitage, cottage"),
   e("師", "shī", "teacher", "teacher, master, mentor"),
   e("考", "kǎo", "to examine", "test, exam, study, investigate"),

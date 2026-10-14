@@ -363,6 +363,20 @@ figcaption {
   color: var(--ink-soft);
 }
 
+/* The date is the link to its line: quiet, the colour of the date, with
+   an underline on hover and the usual focus ring. */
+.colophon-link,
+.colophon-link:visited {
+  color: inherit;
+  text-decoration-color: transparent;
+}
+
+.colophon-link:hover,
+.colophon-link:focus-visible {
+  color: inherit;
+  text-decoration-color: currentcolor;
+}
+
 .colophon--mine .colophon-date {
   color: var(--seal);
 }

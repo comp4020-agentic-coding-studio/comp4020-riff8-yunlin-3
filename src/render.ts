@@ -97,7 +97,7 @@ export function colophonEntry(c: Colophon, ownToken: string): string {
   return `<li class="colophon ${inkClass(c.ink)}${mine ? " colophon--mine" : ""}" id="c-${c.id}" data-id="${c.id}">
         <p class="colophon-body">${escapeHtml(c.body)}</p>
         <div class="colophon-foot">
-          <p class="colophon-date">${dateFmt.format(new Date(c.created_at))}${mine ? " — yours" : ""}</p>
+          <p class="colophon-date"><a class="colophon-link" href="/#c-${c.id}">${dateFmt.format(new Date(c.created_at))}</a>${mine ? " — yours" : ""}</p>
           ${sealMark(entrySeal(c))}
         </div>
       </li>`;

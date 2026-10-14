@@ -78,8 +78,8 @@
   box-shadow: -0.15rem 0 0.4rem rgb(0 0 0 / 30%);
 }
 
-/* The paper. Weave lines are translucent --paper-shade, so nothing behind
-   text is darker than that; the background scrolls with the sheets. */
+/* The paper ground. Its weave is painted per sheet (below), so it travels
+   with the sheets and only visible sheets paint it. */
 .scroll {
   position: relative;
   flex: 1 1 auto;
@@ -89,10 +89,6 @@
   overscroll-behavior-x: contain;
   scroll-behavior: auto;
   background-color: var(--paper);
-  background-image:
-    repeating-linear-gradient(0deg, rgb(235 227 211 / 60%) 0 1px, transparent 1px 0.35rem),
-    repeating-linear-gradient(90deg, rgb(235 227 211 / 45%) 0 1px, transparent 1px 0.3rem);
-  background-attachment: local;
   box-shadow:
     0 0 0 1px var(--gilt),
     0 0 0 0.3rem rgb(185 160 106 / 35%);
@@ -131,6 +127,12 @@
   border: 0;
   border-left: 1px solid rgb(185 160 106 / 28%);
   box-shadow: inset 1px 0 0 rgb(255 255 255 / 45%);
+
+  /* Weave lines are translucent --paper-shade, so nothing behind text is
+     darker than that. */
+  background-image:
+    repeating-linear-gradient(0deg, rgb(235 227 211 / 60%) 0 1px, transparent 1px 0.35rem),
+    repeating-linear-gradient(90deg, rgb(235 227 211 / 45%) 0 1px, transparent 1px 0.3rem);
   content-visibility: auto;
   contain-intrinsic-size: auto 18rem auto 22rem;
 }

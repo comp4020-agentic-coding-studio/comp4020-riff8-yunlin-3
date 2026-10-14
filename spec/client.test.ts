@@ -1,12 +1,18 @@
 import { JSDOM, VirtualConsole } from "jsdom";
 import { readFileSync } from "node:fs";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { baseUrl, marker, newVisitor } from "./helpers.ts";
 
 // The page's own script, as the running app serves it, run in jsdom against
 // the running app: real POSTs, real responses, and a fake EventSource the
 // test drives so it can echo a live event back on purpose. Lanterns are the
 // reward for an accepted line only; nothing typed is lost on a refusal.
+
+// Each test parses the whole served page in jsdom, which costs about a
+// second per thousand lines on the scroll; a local database reused across
+// many runs reaches thousands, past vitest's 5 s default. The assertions are
+// unchanged; only the time allowed scales with the scroll.
+vi.setConfig({ testTimeout: 30_000 });
 
 class FakeEventSource {
   static last: FakeEventSource | undefined;
@@ -26,9 +32,10 @@ class FakeEventSource {
 async function openPage(
   scripts: string[] = ["/public/app.js"],
   visitor?: string,
+  edit: (html: string) => string = (html) => html,
 ): Promise<{ window: JSDOM["window"]; document: Document; errors: string[] }> {
   const cookie = visitor ?? (await newVisitor());
-  const html = await (await fetch(new URL("/", baseUrl), { headers: { Cookie: cookie } })).text();
+  const html = edit(await (await fetch(new URL("/", baseUrl), { headers: { Cookie: cookie } })).text());
   const sources = await Promise.all(scripts.map(async (src) => (await fetch(new URL(src, baseUrl))).text()));
   const errors: string[] = [];
   const virtualConsole = new VirtualConsole();
@@ -204,22 +211,64 @@ it("with the scroll's script loaded first, a live arrival still lands once at th
 // your own accepted line says it was written in. Text only, never markup.
 const statusText = (document: Document) => document.getElementById("scroll-status")!;
 
-it("a live line from someone else is announced in the status line, as text", async () => {
+function liveFrom(document: Document, offset: number, body: string, label = "Seal 守, shǒu: to guard"): number {
+  const ids = [...document.querySelectorAll<HTMLElement>("li.colophon")].map((li) => Number(li.dataset.id));
+  const id = Math.max(0, ...ids) + offset;
+  const html = `<li class="colophon ink--zi" data-id="${id}"><p class="colophon-body">${body}</p>
+    <details class="colophon-seal"><summary aria-label="${label}">x</summary></details></li>`;
+  FakeEventSource.last!.emit("colophon", { id, html, legend: "" });
+  return id;
+}
+
+// Decision D6: someone else's line is announced with its glyph and a short
+// excerpt, unless the visitor is writing (#body focused), when only the
+// glyph, so their own words aren't talked over. Bursts stay a count.
+it("a live line from someone else is announced with its glyph and an excerpt, as text", async () => {
   const { document, errors } = await openPage();
   const status = statusText(document);
   expect(status.getAttribute("role")).toBe("status");
-  const ids = [...document.querySelectorAll<HTMLElement>("li.colophon")].map((li) => Number(li.dataset.id));
-  const next = Math.max(0, ...ids) + 300000;
-  // A seal label carrying markup: if it were written with innerHTML, an
-  // element would appear inside the status line.
-  const html = `<li class="colophon ink--zi" data-id="${next}"><p class="colophon-body">heard</p>
-    <details class="colophon-seal"><summary aria-label="Seal <img/src=x>, x: y">x</summary></details></li>`;
-  FakeEventSource.last!.emit("colophon", { id: next, html, legend: "" });
+  // Markup in the body and the seal label: if either were written with
+  // innerHTML, an element would appear inside the status line.
+  liveFrom(document, 300000, "heard &lt;b&gt;across&lt;/b&gt; the water", "Seal 守&lt;img/src=x&gt;, x: y");
   await settle(1300);
-  expect(status.textContent).toMatch(/new line on the scroll/i);
+  expect(status.textContent).toBe("A new line, signed 守<img/src=x>: heard <b>across</b> the water");
   expect(status.children).toHaveLength(0);
-  expect(status.textContent).not.toContain("heard");
   expect(errors).toEqual([]);
+});
+
+it("a long line is announced as an excerpt of at most 80 characters, cut at a word, with an ellipsis", async () => {
+  const { document } = await openPage();
+  const status = statusText(document);
+  const body = "the river runs past the pine and the pine stays where it is while the water goes on ".repeat(3).trim();
+  liveFrom(document, 310000, body);
+  await settle(1300);
+  const said = status.textContent!;
+  const prefix = "A new line, signed 守: ";
+  expect(said.startsWith(prefix)).toBe(true);
+  const excerpt = said.slice(prefix.length);
+  expect(excerpt.endsWith("…")).toBe(true);
+  const cut = excerpt.slice(0, -1);
+  expect(cut.length).toBeGreaterThan(40);
+  expect(cut.length).toBeLessThanOrEqual(80);
+  expect(body.startsWith(cut)).toBe(true);
+  // At a word boundary: the next character of the body is a space.
+  expect(body[cut.length]).toBe(" ");
+});
+
+it("a short line is announced whole, with no ellipsis", async () => {
+  const { document } = await openPage();
+  liveFrom(document, 315000, "  pine,\n  rock  ");
+  await settle(1300);
+  expect(statusText(document).textContent).toBe("A new line, signed 守: pine, rock");
+});
+
+it("while the visitor is writing, someone else's line is announced by glyph only", async () => {
+  const { document } = await openPage();
+  const status = statusText(document);
+  document.querySelector<HTMLTextAreaElement>("#body")!.focus();
+  liveFrom(document, 320000, "do not read this over my typing");
+  await settle(1300);
+  expect(status.textContent).toBe("A new line on the scroll, signed 守.");
 });
 
 it("a burst of live lines is announced once, as a count", async () => {
@@ -295,4 +344,26 @@ it("a visitor with no lines of their own isn't told about red", async () => {
   const { document } = await openPage(["/public/scroll.js", "/public/app.js"]);
   await settle(100);
   expect(document.querySelector(".scroll-cue")!.textContent).not.toContain("red");
+});
+
+// The strip and cue render hidden on an empty scroll (the shared database is
+// never empty, so this page is the served one with every line taken out, the
+// way the server renders a scroll with none); the first live line shows them.
+it("on an empty scroll the strip and cue appear with the first live line", async () => {
+  const empty = (html: string) =>
+    html
+      .replace(/<ol class="colophon-list" data-last-id="\d+">[\s\S]*?<\/ol>/, '<ol class="colophon-list" data-last-id="0"></ol>')
+      .replace('<div class="scroll-overview" aria-hidden="true">', '<div class="scroll-overview" aria-hidden="true" hidden>')
+      .replace('<p class="scroll-cue">', '<p class="scroll-cue" hidden>');
+  const { document, errors } = await openPage(["/public/scroll.js", "/public/app.js"], undefined, empty);
+  await settle(50);
+  expect(document.querySelectorAll("li.colophon")).toHaveLength(0);
+  expect(document.querySelector<HTMLElement>(".scroll-overview")!.hidden).toBe(true);
+  expect(document.querySelector<HTMLElement>(".scroll-cue")!.hidden).toBe(true);
+  liveFrom(document, 1, "the first line");
+  await settle(150);
+  expect(document.querySelectorAll("li.colophon")).toHaveLength(1);
+  expect(document.querySelector<HTMLElement>(".scroll-overview")!.hidden).toBe(false);
+  expect(document.querySelector<HTMLElement>(".scroll-cue")!.hidden).toBe(false);
+  expect(errors).toEqual([]);
 });

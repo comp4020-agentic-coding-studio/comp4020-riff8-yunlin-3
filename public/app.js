@@ -28,15 +28,16 @@
     return template.content.firstElementChild;
   }
 
-  // Entries keep the server's order (by id) wherever they arrive from, and an
-  // id already on the page is never inserted twice.
+  // Entries keep the server's order, newest first (by id descending),
+  // wherever they arrive from, and an id already on the page is never
+  // inserted twice.
   function placeEntry(id, html) {
     if (list.querySelector(`[data-id="${id}"]`)) return null;
     const li = fragment(html);
     if (!li) return null;
-    const later = [...list.children].find((el) => Number(el.dataset.id) > id);
+    const older = [...list.children].find((el) => Number(el.dataset.id) < id);
     const kept = window.colophonScroll?.beforeArrive?.();
-    list.insertBefore(li, later ?? null);
+    list.insertBefore(li, older ?? null);
     window.colophonScroll?.afterArrive?.(kept, li);
     document.querySelector(".empty-note")?.remove();
     if (!reducedMotion()) li.classList.add("colophon--arriving");
@@ -385,7 +386,7 @@
   // ?after= is the newest entry the server rendered, so anything written
   // between that render and this connect is replayed; on a reconnect the
   // browser sends Last-Event-ID itself and the server replays what was missed.
-  const after = Number(list.dataset.lastId) || 0;
+  const after = Math.max(Number(list.dataset.lastId) || 0, Number(list.firstElementChild?.dataset.id) || 0);
   const source = new EventSource(`/events?after=${after}`);
   source.addEventListener("colophon", (event) => onLive(JSON.parse(event.data)));
   source.addEventListener("reload", () => window.location.reload());

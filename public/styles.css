@@ -63,6 +63,34 @@
   transform: none;
 }
 
+/* Before the scroll: hidden until focused, then a slip of paper in flow
+   above the band, so a keyboard user can jump to what follows. */
+.scroll-section {
+  position: relative;
+}
+
+.skip-past {
+  position: absolute;
+  left: 1rem;
+  z-index: 5;
+  padding: 0.5rem 0.9rem;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 0 0 1px var(--gilt);
+  transform: translateY(-200%);
+  opacity: 0;
+}
+
+.skip-past:focus {
+  transform: translateY(-2.6rem);
+  opacity: 1;
+}
+
+#after-scroll:focus {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

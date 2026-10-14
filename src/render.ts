@@ -1,4 +1,3 @@
-import { existsSync, readFileSync } from "node:fs";
 import { escapeHtml } from "./html.ts";
 import { currentSeal, entrySeal, type Seal } from "./seal.ts";
 import { DEFAULT_INK, INKS } from "./ink.ts";
@@ -14,27 +13,19 @@ const dateFmt = new Intl.DateTimeFormat("en-AU", {
 
 export const MAX_BODY_LENGTH = 320;
 
-// The watercolour is one hand-written SVG file: inlined here as the painting,
-// and referenced from the stylesheet as the header wash, so there's one copy.
-const PAINTING = existsSync("public/painting.svg") ? readFileSync("public/painting.svg", "utf8") : "";
-
-// Small pieces cut from the painting's own vocabulary: a spruce and a
-// boulder, for dividers and the corner of the writing form. Decorative only.
-const SPRUCE = `<svg class="ornament ornament--spruce" viewBox="0 0 40 64" aria-hidden="true" focusable="false"><g fill="#3d5a3a" fill-opacity=".55"><path d="M20 2 27 16 23 15 30 27 25 26 34 40 26 39 37 54 3 54 14 39 6 40 15 26 10 27 17 15 13 16Z"/></g><path d="M20 50v12" stroke="#5b4630" stroke-opacity=".6" stroke-width="2"/></svg>`;
-const BOULDER = `<svg class="ornament ornament--boulder" viewBox="0 0 64 36" aria-hidden="true" focusable="false"><path d="M4 34 9 18 20 8 36 5 50 11 60 24 61 34Z" fill="#8a8378" fill-opacity=".45" stroke="#3c2d1e" stroke-opacity=".18"/><path d="M14 16 30 7 44 9 50 13 36 12 22 17Z" fill="#7b9a5a" fill-opacity=".5"/><path d="M24 24l8-6m6 10 7-8" stroke="#3c2d1e" stroke-opacity=".2" fill="none"/></svg>`;
-
-function divider(): string {
-  return `<div class="divider" aria-hidden="true">${SPRUCE}${BOULDER}${SPRUCE}</div>`;
-}
-
 interface LayoutOptions {
+  // An extra first link before the page, for a target far down the tab order.
+  skip?: string;
   // Placed after the mount, outside the scroll's flow: the dock, the lantern
   // sky and scripts.
   after?: string;
   bodyClass?: string;
+  // A hanging scroll (rollers top and bottom, silk between) for the reading
+  // pages; the scroll page instead lays a handscroll across the wall.
+  hanging?: boolean;
 }
 
-function layout(title: string, body: string, { after = "", bodyClass }: LayoutOptions = {}): string {
+function layout(title: string, body: string, { after = "", bodyClass, hanging = true, skip = "" }: LayoutOptions = {}): string {
   return `<!doctype html>
 <html lang="en-AU">
   <head>
@@ -47,28 +38,36 @@ function layout(title: string, body: string, { after = "", bodyClass }: LayoutOp
     />
     <link rel="icon" href="/public/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/public/styles.css" />
+    <link rel="stylesheet" href="/public/scroll.css" />
     <script src="/public/fan.js"></script>
   </head>
   <body${bodyClass ? ` class="${bodyClass}"` : ""}>
+    ${skip}
     <div class="fan-veil" aria-hidden="true"></div>
     <div class="fan-ribs" aria-hidden="true"></div>
-    <div class="mount">
+    ${
+      hanging
+        ? `<div class="mount">
       <div class="roller roller--top" aria-hidden="true"></div>
       <div class="mount-silk">
         ${body}
       </div>
       <div class="roller roller--bottom" aria-hidden="true"></div>
-    </div>
+    </div>`
+        : `<div class="mount mount--wall">
+      ${body}
+    </div>`
+    }
     ${after}
   </body>
 </html>
 `;
 }
 
-function header(kicker: string, linkHome: boolean): string {
+function header(kicker: string, linkHome: boolean, compact = false): string {
   const title = linkHome ? `<a href="/">Colophon</a>` : "Colophon";
-  return `<header class="site-header">
-          <p class="title-accent" lang="zh-Hant" aria-hidden="true">題記</p>
+  return `<header class="site-header${compact ? " site-header--compact" : ""}">
+          ${compact ? "" : `<p class="title-accent" lang="zh-Hant" aria-hidden="true">題記</p>`}
           <h1>${title}</h1>
           <p class="kicker">${escapeHtml(kicker)}</p>
           <nav aria-label="Colophon"><a href="/">the scroll</a> · <a href="/seal">choose a seal</a> · <a href="/readme/">what good means here</a></nav>
@@ -96,9 +95,11 @@ export function inkClass(key: string | null): string {
 export function colophonEntry(c: Colophon, ownToken: string): string {
   const mine = c.token === ownToken;
   return `<li class="colophon ${inkClass(c.ink)}${mine ? " colophon--mine" : ""}" id="c-${c.id}" data-id="${c.id}">
-        ${sealMark(entrySeal(c))}
         <p class="colophon-body">${escapeHtml(c.body)}</p>
-        <p class="colophon-date">${dateFmt.format(new Date(c.created_at))}${mine ? " — yours" : ""}</p>
+        <div class="colophon-foot">
+          <p class="colophon-date">${dateFmt.format(new Date(c.created_at))}${mine ? " — yours" : ""}</p>
+          ${sealMark(entrySeal(c))}
+        </div>
       </li>`;
 }
 
@@ -112,10 +113,10 @@ function legend(colophons: Colophon[]): string {
     const { entry } = entrySeal(c);
     seen.set(entry.glyph, entry);
   }
-  return `<aside class="seal-legend" aria-labelledby="legend-heading">
-          <h3 id="legend-heading">Seals on this scroll</h3>
+  return `<details class="seal-legend">
+          <summary id="legend-heading">Seals on this scroll</summary>
           <ul>${[...seen.values()].map(legendItem).join("")}</ul>
-        </aside>`;
+        </details>`;
 }
 
 const ERRORS: Record<string, string> = {
@@ -150,49 +151,40 @@ export function renderIndex(colophons: Colophon[], ownToken: string, error?: str
   const lastId = colophons.at(-1)?.id ?? 0;
 
   const body = `
-      <div class="sheet sheet--painting">
-        ${header("a shared margin on one painting", false)}
-        <figure class="painting">
-          <div class="painting-frame">${PAINTING}</div>
-          <figcaption>Spruce, granite and a path, in watercolour: the painting this margin is mounted beside.</figcaption>
-        </figure>
-      </div>
-
-      <div class="sheet sheet--colophons">
-        <main>
-          <figure class="scroll-frame">
-            <div class="scroll-scroller" tabindex="0" role="img"
-                 aria-label="A handscroll painting: Wang Yi's 1363 portrait of Yang Zhuxi standing under a pine, with Ni Zan's rocks and pine, flanked by six and a half centuries of collectors' colophons and seals.">
-              <img src="/public/scroll.avif" alt="" />
+      ${header("a shared margin on one painting", false, true)}
+      <main id="main">
+        <section class="scroll-section" aria-labelledby="colophons-heading">
+          <h2 id="colophons-heading" class="visually-hidden">Colophons</h2>
+          <div class="handscroll">
+            <div class="handscroll-roller handscroll-roller--start" aria-hidden="true"></div>
+            <div class="scroll" role="region" aria-labelledby="colophons-heading" tabindex="0" data-scroll>
+              <ol class="colophon-list" data-last-id="${lastId}">
+                ${colophons.map((c) => colophonEntry(c, ownToken)).join("\n                ")}
+              </ol>
+              ${colophons.length === 0 ? `<p class="empty-note">No one has written in the margin yet.</p>` : ""}
             </div>
-            <figcaption>
-              The tradition this margin borrows from: Wang Yi, <cite>Portrait of Yang Zhuxi</cite>, 1363 —
-              Ni Zan painted the pine and rock. Palace Museum, Beijing. Scroll sideways to see six and a
-              half centuries of colophons already written into its margins.
-            </figcaption>
-          </figure>
-
-          ${divider()}
-
-          <section aria-labelledby="colophons-heading">
-            <h2 id="colophons-heading">Colophons</h2>
-            <p class="section-note">
-              Oldest first, the way a scroll unrolls. New lines appear here as they're written,
-              wherever they're written from. Yours is marked once it's here — nothing you write can be
-              edited or taken back, the same as ink. Tap a seal to read its meaning.
-            </p>
-            <ol class="colophon-list" data-last-id="${lastId}">
-              ${colophons.map((c) => colophonEntry(c, ownToken)).join("\n              ")}
-            </ol>
-            ${colophons.length === 0 ? `<p class="empty-note">No one has written in the margin yet.</p>` : ""}
-            ${legend(colophons)}
-          </section>
-
-        </main>
-      </div>
+            <div class="handscroll-roller handscroll-roller--end" aria-hidden="true"></div>
+          </div>
+          <p class="section-note">Newest at the left; scroll right to read back in time. Nothing written here can be taken back. Tap a seal for its meaning.</p>
+          ${legend(colophons)}
+        </section>
+        <figure class="tradition">
+          <img src="/public/scroll.avif" alt="" />
+          <figcaption>
+            The tradition this margin borrows from: Wang Yi, <cite>Portrait of Yang Zhuxi</cite>, 1363, a
+            handscroll of Yang standing under a pine, with Ni Zan's rocks and pine, flanked by six and a
+            half centuries of collectors' colophons and seals. Palace Museum, Beijing.
+          </figcaption>
+        </figure>
+      </main>
   `;
 
-  return layout("Colophon", body, { after: dock(own, message, draft), bodyClass: "page-scroll" });
+  return layout("Colophon", body, {
+    after: dock(own, message, draft),
+    bodyClass: "page-scroll",
+    hanging: false,
+    skip: `<a class="skip-link" href="#body">Skip to writing a line</a>`,
+  });
 }
 
 // The writing dock: fixed to the bottom of the viewport by CSS alone, outside
@@ -222,6 +214,7 @@ function dock(own: Seal, message: string | undefined, draft: Draft | undefined):
       <p class="dock-seal">You sign with <span class="dock-glyph${own.chosen ? " dock-glyph--chosen" : ""}" lang="zh-Hant" title="${escapeHtml(meaning)}">${own.entry.glyph}</span> · <a href="/seal" aria-label="${escapeHtml(`Change your seal: you sign with ${meaning}, ${how}`)}">Change</a></p>
     </section>
     <div class="lantern-sky" aria-hidden="true"></div>
+    <script src="/public/scroll.js" defer></script>
     <script src="/public/app.js" defer></script>`;
 }
 

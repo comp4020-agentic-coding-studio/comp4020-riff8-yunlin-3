@@ -47,6 +47,22 @@
   box-sizing: border-box;
 }
 
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 120;
+  padding: 0.6rem 0.9rem;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 0 0 1px var(--gilt);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -93,8 +109,7 @@ a:focus-visible,
 button:focus-visible,
 summary:focus-visible,
 textarea:focus-visible,
-input:focus-visible,
-.scroll-scroller:focus-visible {
+input:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
@@ -243,98 +258,10 @@ h3 {
   font-style: italic;
 }
 
-/* The painting: small inside a long mount, open paper either side. */
-.painting {
-  margin: 0;
-  text-align: center;
-}
-
-.painting-art {
-  display: block;
-  width: auto;
-  max-width: 100%;
-  height: 34rem;
-  max-height: 34rem;
-  margin: 0 auto;
-  mix-blend-mode: multiply;
-}
-
-/* Mist: a very slow, low-contrast drift across the painting. */
-.painting-frame {
-  position: relative;
-  width: fit-content;
-  max-width: 100%;
-  margin: 0 auto;
-  overflow: hidden;
-}
-
-.painting-frame::after {
-  content: "";
-  position: absolute;
-  inset: 35% -60% 25%;
-  background: radial-gradient(closest-side, rgb(243 237 225 / 55%), transparent);
-  pointer-events: none;
-  animation: mist 60s ease-in-out infinite alternate;
-}
-
-@keyframes mist {
-  from {
-    transform: translateX(-25%);
-    opacity: 0.4;
-  }
-
-  to {
-    transform: translateX(25%);
-    opacity: 0.9;
-  }
-}
-
-.painting figcaption {
-  max-width: 28rem;
-  margin: 0.75rem auto 0;
-}
-
-.scroll-frame {
-  margin: 0 0 1.5rem;
-}
-
-.scroll-scroller {
-  overflow-x: auto;
-  overflow-y: hidden;
-  height: 7rem;
-  border: 1px solid var(--rule);
-  background: #ece4d3;
-}
-
-.scroll-scroller img {
-  display: block;
-  height: 100%;
-  width: auto;
-  max-width: none;
-}
-
 figcaption {
   margin-top: 0.5rem;
   font-size: 0.9rem;
   color: var(--ink-soft);
-}
-
-.divider {
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  gap: 0.6rem;
-  margin: 1.75rem 0;
-}
-
-.ornament--spruce {
-  width: 1.4rem;
-  height: 2.2rem;
-}
-
-.ornament--boulder {
-  width: 2.4rem;
-  height: 1.35rem;
 }
 
 .section-note {
@@ -349,18 +276,20 @@ figcaption {
   padding: 0;
 }
 
+/* Base entry: a passage, then its foot (date, then seal). scroll.css lays
+   these out as sheets across the handscroll; without it they still read as
+   a plain list. */
 .colophon {
   position: relative;
-  display: grid;
-  grid-template-columns: 2.4rem minmax(0, 1fr);
-  gap: 0 0.9rem;
   padding: 0.9rem 0;
   border-bottom: 1px solid var(--rule);
 }
 
-.colophon-seal {
-  grid-row: span 2;
-  align-self: start;
+.colophon-foot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .colophon-seal summary {
@@ -392,10 +321,10 @@ figcaption {
 .seal-meaning {
   position: absolute;
   z-index: 2;
-  top: 0.4rem;
-  left: 3.1rem;
+  bottom: calc(100% + 0.4rem);
+  left: 0;
   width: max-content;
-  max-width: min(16rem, calc(100% - 3.5rem));
+  max-width: min(16rem, 100%);
   margin: 0;
   padding: 0.35rem 0.6rem;
   font-size: 0.9rem;
@@ -415,7 +344,7 @@ figcaption {
 }
 
 .colophon-body {
-  margin: 0 0 0.3rem;
+  margin: 0 0 0.5rem;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -496,22 +425,37 @@ figcaption {
 }
 
 .seal-legend {
-  margin-top: 1.5rem;
   font-size: 0.9rem;
   color: var(--ink-soft);
 }
 
-.seal-legend h3 {
-  margin: 0 0 0.4rem;
+.seal-legend summary {
+  display: inline-block;
+  min-height: 2.75rem;
+  padding-block: 0.6rem;
   font-size: 1rem;
   color: var(--ink);
+  cursor: pointer;
+}
+
+.seal-legend summary::before {
+  content: "▸ ";
+  color: var(--ink-soft);
+}
+
+.seal-legend[open] summary::before {
+  content: "▾ ";
+}
+
+.seal-legend summary::-webkit-details-marker {
+  display: none;
 }
 
 .seal-legend ul {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem 1.25rem;
-  margin: 0;
+  margin: 0 0 0.6rem;
   padding: 0;
   list-style: none;
 }
@@ -932,6 +876,131 @@ footer {
 }
 
 
+/* The scroll page: no hanging mount. A compact paper strip for the header,
+   the handscroll laid across the wall, and a paper label slip under it for
+   the note, the legend and the tradition. Everything with text sits on
+   paper: --ink-soft on the plaster would fall under 4.5:1. */
+.mount--wall {
+  max-width: none;
+  padding: 0.9rem 0 1.5rem;
+}
+
+.page-scroll .site-header,
+.page-scroll .section-note,
+.page-scroll .seal-legend,
+.page-scroll .tradition {
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(0deg, rgb(235 227 211 / 60%) 0 1px, transparent 1px 0.35rem),
+    repeating-linear-gradient(90deg, rgb(235 227 211 / 45%) 0 1px, transparent 1px 0.3rem);
+}
+
+/* Fallback paper for the scroll if scroll.css hasn't loaded; scroll.css
+   uses the same selectors and comes later, so it replaces all of this. */
+.handscroll {
+  margin: 0 0.5rem;
+  padding: 0.25rem 1rem;
+  background-color: var(--paper);
+}
+
+.site-header--compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1rem 1rem;
+  max-width: 72rem;
+  margin: 0 auto 1.1rem;
+  padding: 0.55rem 1.1rem;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px var(--gilt),
+    0 0.15rem 0.5rem rgb(0 0 0 / 18%);
+}
+
+.site-header--compact::before {
+  inset: 0;
+  background-position: center 20%;
+  background-size: 100% auto;
+  opacity: 0.22;
+}
+
+.site-header--compact h1 {
+  font-size: 1.6rem;
+}
+
+.site-header--compact .kicker {
+  margin: 0;
+}
+
+.site-header--compact nav {
+  margin-left: auto;
+}
+
+.page-scroll .section-note,
+.page-scroll .seal-legend {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 0 1.1rem;
+}
+
+.page-scroll .section-note {
+  margin-top: 1.4rem;
+  padding-top: 0.7rem;
+  box-shadow: 0 -1px 0 var(--gilt);
+}
+
+.page-scroll .seal-legend {
+  padding-bottom: 0.15rem;
+  box-shadow: 0 1px 0 var(--gilt);
+}
+
+.tradition {
+  max-width: 52rem;
+  margin: 1.25rem auto 0;
+  padding: 0.75rem 1.1rem;
+  box-shadow: 0 0 0 1px var(--gilt);
+}
+
+.tradition img {
+  display: block;
+  width: 100%;
+  height: 7rem;
+  object-fit: cover;
+  object-position: 60% 50%;
+  border: 1px solid var(--rule);
+}
+
+.tradition figcaption {
+  margin-top: 0.5rem;
+}
+
+@media (width < 48rem) {
+  .site-header--compact {
+    margin-inline: 0.5rem;
+    padding: 0.45rem 0.8rem 0.55rem;
+  }
+
+  .site-header--compact h1 {
+    font-size: 1.4rem;
+  }
+
+  .site-header--compact nav {
+    flex-basis: 100%;
+    margin-left: 0;
+    font-size: 0.9rem;
+  }
+
+  .page-scroll .section-note,
+  .page-scroll .seal-legend,
+  .tradition {
+    margin-inline: 0.5rem;
+  }
+
+  .tradition img {
+    height: 5.5rem;
+  }
+}
+
 /* The dock: the writing form, fixed to the bottom of the viewport by CSS
    alone, outside the scroll's flow. A paper panel under a strip of mount
    silk; the body is padded by --dock-h so nothing stays covered. Grows
@@ -1039,8 +1108,8 @@ body.page-scroll {
 /* A 44px-tall hit area without making the seal line any taller. */
 .dock-seal a {
   display: inline-block;
-  padding: 0.65rem 0.4rem;
-  margin: -0.65rem -0.4rem;
+  padding: 0.75rem 0.4rem;
+  margin: -0.75rem -0.4rem;
   color: var(--ink);
 }
 
@@ -1188,20 +1257,6 @@ body.page-scroll {
     inset: -1.4rem -1rem 0;
   }
 
-  .painting-frame,
-  .painting-art {
-    width: 100%;
-    height: auto;
-  }
-
-  .colophon {
-    grid-template-columns: 2.2rem minmax(0, 1fr);
-    gap: 0 0.7rem;
-  }
-
-  .divider .ornament--spruce:last-child {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1214,8 +1269,7 @@ body.page-scroll {
   .ink-ch,
   .colophon--arriving,
   .colophon--arriving .colophon-body,
-  .colophon--arriving .colophon-seal summary,
-  .painting-frame::after {
+  .colophon--arriving .colophon-seal summary {
     animation: none;
   }
 
@@ -1231,8 +1285,7 @@ body.page-scroll {
     background-image: none;
   }
 
-  .site-header::before,
-  .painting-frame::after {
+  .site-header::before {
     display: none;
   }
 }
@@ -1247,9 +1300,7 @@ body.page-scroll {
   .fan-veil,
   .fan-ribs,
   .lantern-sky,
-  .dock,
-  .divider,
-  .painting-frame::after {
+  .dock {
     display: none;
   }
 

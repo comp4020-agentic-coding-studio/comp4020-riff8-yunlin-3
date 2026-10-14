@@ -35,7 +35,9 @@
     const li = fragment(html);
     if (!li) return null;
     const later = [...list.children].find((el) => Number(el.dataset.id) > id);
+    const kept = window.colophonScroll?.beforeArrive?.();
     list.insertBefore(li, later ?? null);
+    window.colophonScroll?.afterArrive?.(kept, li);
     document.querySelector(".empty-note")?.remove();
     if (!reducedMotion()) li.classList.add("colophon--arriving");
     return li;
@@ -133,11 +135,11 @@
     const root = document.documentElement;
     if (typeof ResizeObserver === "function") {
       new ResizeObserver(() => {
-        // Only ever grow the room: the focused dock expands, and the page
-        // shouldn't jump back when it collapses mid-read.
-        const h = dockEl.offsetHeight;
-        const now = parseFloat(root.style.getPropertyValue("--dock-h")) || 0;
-        if (h > now) root.style.setProperty("--dock-h", `${h}px`);
+        // The collapsed height only: a focused dock grows over the page for
+        // as long as the visitor is writing, rather than reflowing the
+        // scroll under them.
+        if (dockEl.matches(":focus-within")) return;
+        root.style.setProperty("--dock-h", `${dockEl.offsetHeight}px`);
       }).observe(dockEl);
     }
     const vv = window.visualViewport;

@@ -10,25 +10,39 @@ import { expect, it } from "vitest";
 // colophon markup, never by rereading the whole stylesheet for each use. This
 // greps every var(--seal) directly so a future edit can't reintroduce that
 // silently, the same way a patched line with no test behind it did last time.
-const css = readFileSync("public/styles.css", "utf8");
+// Every stylesheet the page loads: the theme, and the handscroll's own.
+const sheets = ["public/styles.css", "public/scroll.css"];
 
 // A seal is a <details> whose <summary> is the stamp itself: outlined for a
 // random hash glyph, filled for a chosen seal. Both are still "yours" only.
-const ALLOWED_SELECTORS = [
-  ".colophon--mine .colophon-seal summary",
-  ".colophon--mine .seal--chosen summary",
-  ".colophon--mine .colophon-date",
-];
+// The overview strip's ticks mark where your own lines are (decisions.md D4):
+// the same meaning, drawn small.
+const ALLOWED: Record<string, string[]> = {
+  "public/styles.css": [
+    ".colophon--mine .colophon-seal summary",
+    ".colophon--mine .seal--chosen summary",
+    ".colophon--mine .colophon-date",
+  ],
+  "public/scroll.css": [".scroll-overview-tick"],
+};
 
-it("var(--seal) marks only a colophon that belongs to the current browser", () => {
-  const rules = css
+function sealSelectors(file: string): string[] {
+  return readFileSync(file, "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
     .split("}")
     .map((rule) => rule.replace(/\s+/g, " ").trim())
-    .filter(Boolean);
+    .filter((rule) => /var\(\s*--seal\b/.test(rule))
+    .map((rule) => rule.slice(0, rule.lastIndexOf("{")).split("{").at(-1)!.trim());
+}
 
-  for (const rule of rules) {
-    if (!rule.includes("var(--seal)")) continue;
-    const selector = rule.split("{")[0]!.trim();
-    expect(ALLOWED_SELECTORS, `unexpected var(--seal) use in "${selector}"`).toContain(selector);
+it("var(--seal) marks only a colophon that belongs to the current browser", () => {
+  for (const file of sheets) {
+    for (const selector of sealSelectors(file)) {
+      expect(ALLOWED[file], `unexpected var(--seal) use in ${file}: "${selector}"`).toContain(selector);
+    }
   }
+});
+
+it("the overview ticks are the one --seal use in the handscroll's stylesheet", () => {
+  expect(sealSelectors("public/scroll.css")).toEqual([".scroll-overview-tick"]);
 });

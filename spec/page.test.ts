@@ -82,6 +82,50 @@ it("an ?error= naming an inherited object property still answers with the page",
   }
 });
 
+// L1 (decisions.md D3, D4): one landmark named Colophons, a polite status line
+// for arrivals outside the list, and a pointer-only overview strip that is
+// invisible to assistive tech and never takes focus.
+it("the scroll is the only region named Colophons, and the section doesn't name itself", async () => {
+  await post("/colophons", { body: marker("page-region") });
+  const d = doc(await page("/"));
+  expect(d.querySelector("section.scroll-section")!.hasAttribute("aria-labelledby")).toBe(false);
+  const named = [...d.querySelectorAll("[role=region], section[aria-labelledby], section[aria-label]")].filter((el) => {
+    const id = el.getAttribute("aria-labelledby");
+    const name = id ? d.getElementById(id)?.textContent : el.getAttribute("aria-label");
+    return name?.trim() === "Colophons";
+  });
+  expect(named).toHaveLength(1);
+  expect(named[0]!.matches(".scroll[role=region]")).toBe(true);
+});
+
+it("arrivals have a visually hidden polite status line, outside the list", async () => {
+  const d = doc(await page("/"));
+  const status = d.querySelectorAll("[role=status]");
+  expect(status).toHaveLength(1);
+  const line = status[0]!;
+  expect(line.classList.contains("visually-hidden")).toBe(true);
+  expect(line.getAttribute("aria-live") ?? "polite").toBe("polite");
+  expect(line.closest(".colophon-list")).toBeNull();
+  expect(line.closest(".scroll")).toBeNull();
+  expect(line.textContent).toBe("");
+});
+
+it("the overview strip is hidden from assistive tech and nothing in it takes focus", async () => {
+  await post("/colophons", { body: marker("page-overview") });
+  const d = doc(await page("/"));
+  const strip = d.querySelector(".scroll-overview")!;
+  expect(strip, "expected the overview strip on a scroll with lines").toBeTruthy();
+  expect(strip.getAttribute("aria-hidden")).toBe("true");
+  expect(strip.hasAttribute("tabindex")).toBe(false);
+  expect(strip.querySelector("[tabindex], a[href], button, input, select, textarea, summary")).toBeNull();
+});
+
+it("anything scrolled into view clears the dock: html's scroll-padding-bottom uses --dock-h", () => {
+  const css = readFileSync("public/styles.css", "utf8");
+  const rules = [...css.matchAll(/(?:^|})\s*html\s*\{([^}]*)\}/g)].map((m) => m[1]!);
+  expect(rules.some((r) => /scroll-padding-bottom\s*:[^;]*var\(--dock-h\b/.test(r))).toBe(true);
+});
+
 // An empty scroll can't be produced on the shared database, so this renders
 // the page directly against a scratch one.
 const scratch = mkdtempSync(join(tmpdir(), "colophon-page-"));

@@ -197,3 +197,73 @@ it("with the scroll's script loaded first, a live arrival still lands once at th
   expect(list.filter((li) => li.dataset.id === String(next))).toHaveLength(1);
   expect(errors).toEqual([]);
 });
+
+// L1: what a screen-reader user hears. Someone else's line is announced in
+// the hidden status line (after a short gather, so a burst is one count);
+// your own accepted line says it was written in. Text only, never markup.
+const statusText = (document: Document) => document.getElementById("scroll-status")!;
+
+it("a live line from someone else is announced in the status line, as text", async () => {
+  const { document, errors } = await openPage();
+  const status = statusText(document);
+  expect(status.getAttribute("role")).toBe("status");
+  const ids = [...document.querySelectorAll<HTMLElement>("li.colophon")].map((li) => Number(li.dataset.id));
+  const next = Math.max(0, ...ids) + 300000;
+  // A seal label carrying markup: if it were written with innerHTML, an
+  // element would appear inside the status line.
+  const html = `<li class="colophon ink--zi" data-id="${next}"><p class="colophon-body">heard</p>
+    <details class="colophon-seal"><summary aria-label="Seal <img/src=x>, x: y">x</summary></details></li>`;
+  FakeEventSource.last!.emit("colophon", { id: next, html, legend: "" });
+  await settle(1300);
+  expect(status.textContent).toMatch(/new line on the scroll/i);
+  expect(status.children).toHaveLength(0);
+  expect(status.textContent).not.toContain("heard");
+  expect(errors).toEqual([]);
+});
+
+it("a burst of live lines is announced once, as a count", async () => {
+  const { document } = await openPage();
+  const status = statusText(document);
+  const ids = [...document.querySelectorAll<HTMLElement>("li.colophon")].map((li) => Number(li.dataset.id));
+  const base = Math.max(0, ...ids) + 400000;
+  for (let i = 0; i < 3; i++) {
+    const id = base + i;
+    FakeEventSource.last!.emit("colophon", {
+      id,
+      html: `<li class="colophon ink--mo" data-id="${id}"><p class="colophon-body">burst ${i}</p></li>`,
+      legend: "",
+    });
+  }
+  await settle(1300);
+  expect(status.textContent).toMatch(/^3 new lines/);
+});
+
+it("your own accepted line is announced as written in", async () => {
+  const { document, errors } = await openPage();
+  type(document, marker("announce-own"));
+  document.querySelector<HTMLFormElement>(".write-form")!.requestSubmit();
+  await settle(300);
+  expect(statusText(document).textContent).toBe("Your line is written in.");
+  expect(errors).toEqual([]);
+});
+
+it("after a refused line, focus is back in the text and the button was never disabled", async () => {
+  const { document } = await openPage();
+  const textarea = document.querySelector<HTMLTextAreaElement>("#body")!;
+  const button = document.querySelector<HTMLButtonElement>(".write-form button[type=submit]")!;
+  type(document, "   ");
+  textarea.removeAttribute("required");
+  button.focus();
+  let everDisabled = false;
+  const watch = new document.defaultView!.MutationObserver(() => (everDisabled ||= button.disabled));
+  watch.observe(button, { attributes: true });
+  document.querySelector<HTMLFormElement>(".write-form")!.requestSubmit();
+  expect(button.disabled).toBe(false);
+  await settle();
+  watch.disconnect();
+  expect(document.querySelector(".form-error")).toBeTruthy();
+  expect(document.activeElement).toBe(textarea);
+  expect(everDisabled).toBe(false);
+  expect(button.disabled).toBe(false);
+  expect(button.hasAttribute("aria-disabled")).toBe(false);
+});

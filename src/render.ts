@@ -64,11 +64,14 @@ function layout(title: string, body: string, { after = "", bodyClass, hanging = 
 `;
 }
 
-function header(kicker: string, linkHome: boolean, compact = false): string {
+// On pages whose own content brings an h1 (the README, ADRs) the banner
+// title is a paragraph, so the page has one h1.
+function header(kicker: string, linkHome: boolean, compact = false, titleTag: "h1" | "p" = "h1"): string {
   const title = linkHome ? `<a href="/">Colophon</a>` : "Colophon";
+  const titleEl = titleTag === "h1" ? `<h1>${title}</h1>` : `<p class="site-title">${title}</p>`;
   return `<header class="site-header${compact ? " site-header--compact" : ""}">
           ${compact ? "" : `<p class="title-accent" lang="zh-Hant" aria-hidden="true">題記</p>`}
-          <h1>${title}</h1>
+          ${titleEl}
           <p class="kicker">${escapeHtml(kicker)}</p>
           <nav aria-label="Colophon"><a href="/">the scroll</a> · <a href="/seal">choose a seal</a> · <a href="/readme/">what good means here</a></nav>
         </header>`;
@@ -384,7 +387,7 @@ export function renderSealChooser(page: SealPage): string {
 export function renderReadme(html: string, title = "About — Colophon", kicker = "what good means here"): string {
   const body = `
       <div class="sheet sheet--colophons">
-        ${header(kicker, true)}
+        ${header(kicker, true, false, "p")}
         <main class="prose">
           ${html}
         </main>

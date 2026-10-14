@@ -271,13 +271,16 @@ h3 {
   mask-composite: intersect;
 }
 
-.site-header h1 {
+.site-header h1,
+.site-header .site-title {
   margin: 0;
+  line-height: 1.2;
   font-size: 2.1rem;
   letter-spacing: 0.02em;
 }
 
-.site-header h1 a {
+.site-header h1 a,
+.site-header .site-title a {
   color: inherit;
   text-decoration: none;
 }

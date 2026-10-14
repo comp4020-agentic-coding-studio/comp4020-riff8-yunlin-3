@@ -23,6 +23,10 @@ the same commit as the work.
 
 ## Done
 
+- [x] P0 the writing dock (fixed, CSS-only, no-JS form) and the colophons as a
+  right-to-left mounted handscroll that opens at the newest line; eased wheel,
+  keys, arrivals that never move a reader elsewhere; painting removed (55c779f)
+
 - [x] P0 who did what, in the logs: logfmt `who=<glyph>#<tag>`, never a
   token or body; ADR 0002; error boundary so a half-sent body can't crash
   the server; a rejected plain POST answers 422 with the text kept (ba16ff7)

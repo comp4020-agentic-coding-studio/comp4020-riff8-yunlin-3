@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, expect, it } from "vitest";
-import { marker, newVisitor, page, post } from "./helpers.ts";
+import { baseUrl, marker, newVisitor, page, post } from "./helpers.ts";
 
 // Crit 10's shape for /: the visitors' colophons are the handscroll, and the
 // write form sits in a dock fixed on screen, outside the scroll's flow
@@ -68,6 +68,18 @@ it("the watercolour painting is no longer inlined as the centrepiece", async () 
   const viewBox = readFileSync("public/painting.svg", "utf8").match(/<svg[^>]*viewBox="([^"]+)"/)![1]!;
   expect(html).not.toContain(`viewBox="${viewBox}"`);
   expect(html).not.toContain("Spruce, granite and a path");
+});
+
+// An unknown ?error= code is just no message; one that names a property every
+// object inherits must not be looked up as if it were a message.
+it("an ?error= naming an inherited object property still answers with the page", async () => {
+  for (const code of ["constructor", "toString", "__proto__", "hasOwnProperty", "valueOf", "nonsense"]) {
+    const res = await fetch(new URL(`/?error=${code}`, baseUrl));
+    expect(res.status, code).toBe(200);
+    const d = doc(await res.text());
+    expect(d.querySelector("form.write-form"), code).toBeTruthy();
+    expect(d.querySelector(".form-error"), code).toBeNull();
+  }
 });
 
 // An empty scroll can't be produced on the shared database, so this renders

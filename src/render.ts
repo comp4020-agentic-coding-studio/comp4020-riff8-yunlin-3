@@ -120,17 +120,23 @@ export function errorMessage(code: string | undefined): string | undefined {
   return code ? ERRORS[code] : undefined;
 }
 
-function inkSwatches(): string {
+function inkSwatches(checkedInk: string = DEFAULT_INK): string {
+  const checked = INKS.some((i) => i.key === checkedInk) ? checkedInk : DEFAULT_INK;
   return INKS.map(
     (ink) => `<label class="swatch ${inkClass(ink.key)}">
-              <input type="radio" name="ink" value="${ink.key}"${ink.key === DEFAULT_INK ? " checked" : ""} />
+              <input type="radio" name="ink" value="${ink.key}"${ink.key === checked ? " checked" : ""} />
               <span class="swatch-chip" aria-hidden="true"></span>
               <span><span lang="zh-Hant">${ink.hanzi}</span> ${escapeHtml(ink.name)}</span>
             </label>`,
   ).join("\n            ");
 }
 
-export function renderIndex(colophons: Colophon[], ownToken: string, error?: string): string {
+export interface Draft {
+  body: string;
+  ink: string;
+}
+
+export function renderIndex(colophons: Colophon[], ownToken: string, error?: string, draft?: Draft): string {
   const message = errorMessage(error);
   const own = currentSeal(ownToken, claimOf(ownToken));
   const lastId = colophons.at(-1)?.id ?? 0;
@@ -178,17 +184,17 @@ export function renderIndex(colophons: Colophon[], ownToken: string, error?: str
 
           <section aria-labelledby="write-heading" class="write">
             <h2 id="write-heading">Add yours</h2>
-            ${message ? `<p class="form-error" role="alert">${escapeHtml(message)}</p>` : ""}
+            ${message ? `<p class="form-error" id="form-error" role="alert">${escapeHtml(message)}</p>` : ""}
             <form method="post" action="/colophons" class="write-form" data-own-seal="${own.entry.glyph}">
               <label for="body">A line for the margin</label>
               <div class="inkwell">
                 <textarea id="body" name="body" maxlength="${MAX_BODY_LENGTH}" rows="3" required
-                  aria-describedby="body-count"></textarea>
+                  aria-describedby="body-count${message ? " form-error" : ""}">${draft?.body ? `\n${escapeHtml(draft.body)}` : ""}</textarea>
               </div>
               <p id="body-count" class="count">Up to ${MAX_BODY_LENGTH} characters.</p>
               <fieldset class="inks">
                 <legend>Ink</legend>
-                ${inkSwatches()}
+                ${inkSwatches(draft?.ink)}
               </fieldset>
               <div class="write-actions">
                 <button type="submit">Write it in</button>

@@ -145,6 +145,16 @@ export interface Draft {
   ink: string;
 }
 
+const countFmt = new Intl.NumberFormat("en-AU");
+
+// The strip under the scroll and its cue; scroll.js draws the window and
+// rewrites the cue to the lines in view. Nothing to show on an empty scroll.
+function overview(count: number): string {
+  if (count === 0) return "";
+  return `<div class="scroll-overview" aria-hidden="true"><div class="scroll-overview-window"></div></div>
+          <p class="scroll-cue">${countFmt.format(count)} ${count === 1 ? "line" : "lines"} · newest at the left</p>`;
+}
+
 export function renderIndex(colophons: Colophon[], ownToken: string, error?: string, draft?: Draft): string {
   const message = errorMessage(error);
   const own = currentSeal(ownToken, claimOf(ownToken));
@@ -165,8 +175,10 @@ export function renderIndex(colophons: Colophon[], ownToken: string, error?: str
             </div>
             <div class="handscroll-roller handscroll-roller--end" aria-hidden="true"></div>
           </div>
+          ${overview(colophons.length)}
           <p class="section-note">Newest at the left; scroll right to read back in time. Nothing written here can be taken back. Tap a seal for its meaning.</p>
           ${legend(colophons)}
+          <p class="visually-hidden" role="status" aria-live="polite" id="scroll-status"></p>
         </section>
         <figure class="tradition">
           <img src="/public/scroll.avif" alt="" />

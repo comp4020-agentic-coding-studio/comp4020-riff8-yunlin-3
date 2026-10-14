@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
-import { createServer } from "node:net";
+import { connect, createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
@@ -178,4 +178,23 @@ it("a rejected submission logs who and why, never the text", async () => {
   expect(line).toContain(`len=${body.length}`);
   expect(stdout).not.toContain("rejected-xxx");
   expect(stdout).not.toContain(token);
+});
+
+it("a body cut off mid-request logs an error line with no body, and the server keeps answering", async () => {
+  const before = logLines().length;
+  const { port } = new URL(base);
+  await new Promise<void>((resolve) => {
+    const socket = connect(Number(port), "127.0.0.1", () => {
+      socket.write(
+        "POST /colophons HTTP/1.1\r\nHost: x\r\nContent-Type: application/x-www-form-urlencoded\r\n" +
+          "Content-Length: 100\r\n\r\nbody=halfway-secret",
+        () => setTimeout(() => (socket.destroy(), resolve()), 100),
+      );
+    });
+    socket.on("error", () => resolve());
+  });
+  await until(() => logLines().slice(before).some((l) => l.startsWith("event=error ")), 5000, "event=error");
+  expect(child!.exitCode).toBeNull();
+  expect((await fetch(new URL("/", base))).status).toBe(200);
+  expect(stdout).not.toContain("halfway-secret");
 });

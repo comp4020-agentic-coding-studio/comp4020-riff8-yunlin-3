@@ -94,14 +94,30 @@ function rulesWithMedia(): { media: string; selector: string; body: string }[] {
   return out;
 }
 
-// With JavaScript off, every sheet still skips rendering off screen: the
-// base rule says content-visibility: auto, and only scroll.js (which sets
-// data-windowed) swaps that for its own render window. Print shows all.
-it("with no script, every sheet keeps content-visibility: auto", () => {
+// Every sheet skips rendering while off screen, with or without script:
+// the base rule says content-visibility: auto, and only print overrides it
+// (to show every line on paper).
+it("every sheet keeps content-visibility: auto; only print overrides it", () => {
   expect(ruleFor(".scroll .colophon")).toMatch(/content-visibility\s*:\s*auto/);
   const overrides = rulesWithMedia().filter((r) => /content-visibility\s*:\s*(?:hidden|visible)\b/.test(r.body));
-  expect(overrides.length).toBeGreaterThan(0);
   for (const { media, selector } of overrides) {
-    expect(/\[data-windowed\]/.test(selector) || /\bprint\b/.test(media), `"${media} ${selector}"`).toBe(true);
+    expect(/\bprint\b/.test(media), `"${media} ${selector}" overrides content-visibility outside print`).toBe(true);
   }
+});
+
+// A line taller than its sheet (320 full-width characters) scrolls inside the
+// sheet; while more is below, its foot fades (a real bug: the text was hidden
+// with no sign). And no rule or script ever stops a sheet rendering for good:
+// the browser's find and copy have to reach every line.
+it("an overflowing body fades at the foot while more is below", () => {
+  const rule = ruleFor(".scroll .colophon-body[data-more]");
+  expect(rule, "expected a .colophon-body[data-more] rule in scroll.css").toBeTruthy();
+  expect(rule).toMatch(/(?:-webkit-)?mask-image\s*:[^;]*transparent/);
+  expect(ruleFor(".scroll .colophon-body[data-overflow]:focus-visible")).toMatch(/outline\s*:/);
+});
+
+it("nothing hides a sheet's content from find and copy", () => {
+  expect(scrollCss).not.toMatch(/content-visibility\s*:\s*hidden/);
+  const js = readFileSync("public/scroll.js", "utf8");
+  expect(js).not.toMatch(/content-?visibility/i);
 });

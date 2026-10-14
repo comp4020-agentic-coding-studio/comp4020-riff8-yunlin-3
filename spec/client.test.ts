@@ -1,7 +1,7 @@
 import { JSDOM, VirtualConsole } from "jsdom";
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { baseUrl, marker, newVisitor, until } from "./helpers.ts";
+import { baseUrl, marker, newVisitor, post, until } from "./helpers.ts";
 
 // The page's own script, as the running app serves it, run in jsdom against
 // the running app: real POSTs, real responses, and a fake EventSource the
@@ -429,6 +429,11 @@ function flatLayout(window: JSDOM["window"]): void {
     if (this.matches(".scroll")) {
       return { left: 0, right: VIEW, width: VIEW, top: 0, bottom: 100, height: 100, x: 0, y: 0 } as DOMRect;
     }
+    // scroll.js measures the three sheet widths with a probe element sized
+    // from the --sheet-* properties; every sheet is SHEET wide here.
+    if (this.style.visibility === "hidden" && this.style.position === "absolute") {
+      return { left: 0, right: SHEET, width: SHEET, top: 0, bottom: 0, height: 0, x: 0, y: 0 } as DOMRect;
+    }
     return native.call(this);
   };
   const el = scroller();
@@ -534,4 +539,57 @@ it("a page restored from the back-forward cache reloads, and a fresh one doesn't
     expect(navigations.length, `persisted=${persisted}`).toBe(persisted ? 1 : 0);
     dom.window.close();
   }
+});
+
+// A line too tall for its sheet (a real bug: its end was hidden with no
+// sign). With the flat layout above plus a body height model (a body whose
+// text is over 200 characters is 600 px of text in a 300 px box), scroll.js
+// marks it focusable and fading while more is below, stops fading once
+// scrolled to its end, and leaves arrow keys on it to the body, not the scroll.
+it("a line too long for its sheet takes focus, fades until read to the end, and keeps its own keys", async () => {
+  const cookie = await newVisitor();
+  const long = `${marker("tall")} ${"長".repeat(280)}`;
+  expect((await post("/colophons", { body: long }, cookie)).status).toBe(303);
+  const tall = (window: JSDOM["window"]) => {
+    flatLayout(window);
+    const isBody = (el: Element) => el.matches(".colophon-body");
+    Object.defineProperty(window.HTMLElement.prototype, "scrollHeight", {
+      configurable: true,
+      get(this: HTMLElement) {
+        return isBody(this) ? (this.textContent!.length > 200 ? 600 : 100) : 0;
+      },
+    });
+    Object.defineProperty(window.HTMLElement.prototype, "clientHeight", {
+      configurable: true,
+      get(this: HTMLElement) {
+        return isBody(this) ? (this.textContent!.length > 200 ? 300 : 100) : 0;
+      },
+    });
+  };
+  const { window, document, errors } = await openPage(["/public/scroll.js", "/public/app.js"], cookie, undefined, tall);
+  const scroller = document.querySelector<HTMLElement>(".scroll")!;
+  const body = entriesWith(document, long)[0]!.querySelector<HTMLElement>(".colophon-body")!;
+  expect((body.parentElement as HTMLElement).offsetLeft).toBe(0); // newest, in view
+  scroller.dispatchEvent(new window.Event("scroll"));
+  await until(() => body.hasAttribute("data-overflow"), 3000);
+  expect(body.hasAttribute("data-overflow")).toBe(true);
+  expect(body.getAttribute("tabindex")).toBe("0");
+  expect(body.hasAttribute("data-more")).toBe(true);
+  const short = [...document.querySelectorAll<HTMLElement>(".colophon-body")].find(
+    (b) => b !== body && b.textContent!.length <= 200 && (b.parentElement as HTMLElement).offsetLeft < 600,
+  );
+  if (short) expect(short.hasAttribute("data-overflow")).toBe(false);
+
+  body.scrollTop = 300;
+  body.dispatchEvent(new window.Event("scroll"));
+  expect(body.hasAttribute("data-more")).toBe(false);
+
+  const left = scroller.scrollLeft;
+  body.focus();
+  const key = new window.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true });
+  body.dispatchEvent(key);
+  await settle(200);
+  expect(key.defaultPrevented).toBe(false);
+  expect(scroller.scrollLeft).toBe(left);
+  expect(errors).toEqual([]);
 });

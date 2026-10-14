@@ -168,10 +168,14 @@ it("a live colophon from someone else is placed in id order, once", async () => 
   const html = `<li class="colophon ink--zi" data-id="${next}"><p class="colophon-body">from afar</p></li>`;
   FakeEventSource.last!.emit("colophon", { id: next, html, legend: "" });
   FakeEventSource.last!.emit("colophon", { id: next, html, legend: "" });
+  // Decision D10: the list is newest first, so the newest line is the first
+  // child, and every line sits before any older one.
   const list = [...document.querySelectorAll<HTMLElement>("li.colophon")];
-  expect(list.at(-1)!.dataset.id).toBe(String(next));
+  expect(list[0]!.dataset.id).toBe(String(next));
+  const order = list.map((li) => Number(li.dataset.id));
+  expect(order).toEqual([...order].sort((a, b) => b - a));
   // Fresh ink and the seal press hang off this class.
-  expect(list.at(-1)!.classList.contains("colophon--arriving")).toBe(true);
+  expect(list[0]!.classList.contains("colophon--arriving")).toBe(true);
   expect(list.filter((li) => li.dataset.id === String(next))).toHaveLength(1);
   expect(FakeEventSource.last!.url).toBe(`/events?after=${Math.max(0, ...ids)}`);
 });
@@ -202,7 +206,7 @@ it("with the scroll's script loaded first, a live arrival still lands once at th
   FakeEventSource.last!.emit("colophon", { id: next, html, legend: "" });
   await settle(100);
   const list = [...document.querySelectorAll<HTMLElement>(".scroll .colophon-list li.colophon")];
-  expect(list.at(-1)!.dataset.id).toBe(String(next));
+  expect(list[0]!.dataset.id).toBe(String(next));
   expect(list.filter((li) => li.dataset.id === String(next))).toHaveLength(1);
   expect(errors).toEqual([]);
 });
@@ -353,7 +357,7 @@ it("a visitor with no lines of their own isn't told about red", async () => {
 it("on an empty scroll the strip and cue appear with the first live line", async () => {
   const empty = (html: string) =>
     html
-      .replace(/<ol class="colophon-list" data-last-id="\d+">[\s\S]*?<\/ol>/, '<ol class="colophon-list" data-last-id="0"></ol>')
+      .replace(/<ol class="colophon-list"[^>]*>[\s\S]*?<\/ol>/, '<ol class="colophon-list" reversed data-last-id="0"></ol>')
       .replace('<div class="scroll-overview" aria-hidden="true">', '<div class="scroll-overview" aria-hidden="true" hidden>')
       .replace('<p class="scroll-cue">', '<p class="scroll-cue" hidden>');
   const { document, errors } = await openPage(["/public/scroll.js", "/public/app.js"], undefined, empty);
@@ -367,4 +371,24 @@ it("on an empty scroll the strip and cue appear with the first live line", async
   expect(document.querySelector<HTMLElement>(".scroll-overview")!.hidden).toBe(false);
   expect(document.querySelector<HTMLElement>(".scroll-cue")!.hidden).toBe(false);
   expect(errors).toEqual([]);
+});
+
+// D10: an older line arriving late (a reconnect replay out of order) still
+// lands in id order, after every newer line and before every older one.
+it("a live line older than some on the page lands between them, newest first", async () => {
+  const { document } = await openPage();
+  const ids = [...document.querySelectorAll<HTMLElement>("li.colophon")].map((li) => Number(li.dataset.id));
+  const top = Math.max(0, ...ids);
+  const newer = top + 500002;
+  const older = top + 500001;
+  for (const id of [newer, older]) {
+    FakeEventSource.last!.emit("colophon", {
+      id,
+      html: `<li class="colophon ink--mo" data-id="${id}"><p class="colophon-body">order ${id}</p></li>`,
+      legend: "",
+    });
+  }
+  const order = [...document.querySelectorAll<HTMLElement>("li.colophon")].map((li) => Number(li.dataset.id));
+  expect(order.slice(0, 3)).toEqual([newer, older, top]);
+  expect(order).toEqual([...order].sort((a, b) => b - a));
 });

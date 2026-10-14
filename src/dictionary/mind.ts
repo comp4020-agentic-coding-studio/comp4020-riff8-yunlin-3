@@ -97,7 +97,7 @@ export const MIND = [
   e("疑", "yí", "to doubt", "doubt, question, uncertain"),
   e("誓", "shì", "vow", "vow, oath, pledge"),
   e("膽", "dǎn", "nerve, daring", "nerve, daring, guts, boldness"),
-  e("興", "xìng", "inspired mood", "enthusiasm, excitement, excited, mood, inspiration"),
+  e("興", "xìng", "inspired mood", "enthusiasm, mood, inspiration"),
   e("畏", "wèi", "awe, fear", "awe, fear, afraid, revere"),
   e("生", "shēng", "life, to grow", "life, birth, born, grow, live"),
   e("活", "huó", "to live", "live, alive, lively, living"),

@@ -24,6 +24,12 @@ the same commit as the work.
 
 ## Done
 
+- [x] P0 L6: the textarea no longer has `maxlength`, which silently cut a
+  321-character paste mid-word against the "never auto-truncate" rule; the
+  server is the only length boundary and the counter shows how far over.
+  Back after taking a seal reloads instead of showing the old seal; the
+  strip ships hidden until the script can drive it (a82d649)
+
 - [x] P1 L5: your own line glides into view even when you were reading
   elsewhere; Back after a date link restores where you were; permalinks
   don't push the page down; seal results as a card grid with #results

@@ -154,6 +154,41 @@ it("each sheet's date links to its own line, on the page and in a live entry", a
   }
 });
 
+// Decision D10: the list is newest first in the DOM, an <ol reversed>, so a
+// screen reader, a no-JS reader and the visual scroll all start at the line a
+// new one will join; the numbering still counts the oldest as 1.
+it("the list is an ol[reversed], newest first, with data-last-id the newest id", async () => {
+  await post("/colophons", { body: marker("order-a") });
+  await post("/colophons", { body: marker("order-b") });
+  const d = doc(await page("/"));
+  const list = d.querySelector("ol.colophon-list")!;
+  expect(list.hasAttribute("reversed")).toBe(true);
+  const ids = [...list.querySelectorAll<HTMLElement>(":scope > li.colophon")].map((li) => Number(li.dataset.id));
+  expect(ids.length).toBeGreaterThan(1);
+  expect(ids[0]).toBe(Math.max(...ids));
+  expect(ids).toEqual([...ids].sort((a, b) => b - a));
+  expect(Number(list.getAttribute("data-last-id"))).toBe(ids[0]);
+});
+
+it("a keyboard user can skip past the scroll, to a target that exists and takes focus", async () => {
+  const d = doc(await page("/"));
+  const skip = d.querySelector<HTMLAnchorElement>("a.skip-past")!;
+  expect(skip, "expected a.skip-past").toBeTruthy();
+  expect(skip.textContent!.trim()).toMatch(/skip past the scroll/i);
+  const scroll = d.querySelector(".scroll")!;
+  // Before the scroll in document (and so tab) order.
+  expect(skip.compareDocumentPosition(scroll) & 4 /* FOLLOWING */).toBeTruthy();
+  const href = skip.getAttribute("href")!;
+  expect(href).toMatch(/^#[\w-]+$/);
+  const target = d.getElementById(href.slice(1))!;
+  expect(target, `expected an element with id ${href.slice(1)}`).toBeTruthy();
+  // After the scroll, outside it, and focusable so focus actually moves there.
+  expect(scroll.compareDocumentPosition(target) & 4).toBeTruthy();
+  expect(target.closest(".scroll")).toBeNull();
+  const focusable = target.matches("a[href], button, input, select, textarea, summary") || target.hasAttribute("tabindex");
+  expect(focusable).toBe(true);
+});
+
 // An empty scroll can't be produced on the shared database, so this renders
 // the page directly against a scratch one.
 const scratch = mkdtempSync(join(tmpdir(), "colophon-page-"));

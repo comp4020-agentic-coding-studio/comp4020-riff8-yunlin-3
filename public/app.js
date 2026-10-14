@@ -62,7 +62,7 @@
   // goes in through textContent, taken from the server-rendered entry.
   const status = document.getElementById("scroll-status");
   const BURST_MS = 900;
-  let heard = { count: 0, glyph: "", timer: 0 };
+  let heard = { count: 0, glyph: "", text: "", timer: 0 };
 
   function say(message) {
     if (!status) return;
@@ -76,14 +76,29 @@
     return /^Seal (\S+?),/.exec(label)?.[1] ?? "";
   }
 
+  // The first <=80 characters of a line, cut at a word boundary.
+  function excerpt(text) {
+    const flat = text.replace(/\s+/g, " ").trim();
+    if (flat.length <= 80) return flat;
+    const cut = flat.slice(0, 80);
+    const space = cut.lastIndexOf(" ");
+    return `${(space > 40 ? cut.slice(0, space) : cut).replace(/[\s,;:.]+$/, "")}…`;
+  }
+
+  // While the visitor is writing, only the glyph, so their own words aren't
+  // talked over by someone else's; otherwise a short excerpt.
   function announceOther(li) {
     heard.count++;
     heard.glyph = sealGlyph(li);
+    heard.text = li.querySelector(".colophon-body")?.textContent ?? "";
     if (heard.timer) return;
     heard.timer = setTimeout(() => {
-      const { count, glyph } = heard;
-      heard = { count: 0, glyph: "", timer: 0 };
-      say(count > 1 ? `${count} new lines on the scroll.` : `A new line on the scroll${glyph ? `, signed ${glyph}` : ""}.`);
+      const { count, glyph, text } = heard;
+      heard = { count: 0, glyph: "", text: "", timer: 0 };
+      if (count > 1) return say(`${count} new lines on the scroll.`);
+      const writing = document.activeElement?.id === "body";
+      const signed = glyph ? `, signed ${glyph}` : "";
+      say(writing || !text ? `A new line on the scroll${signed}.` : `A new line${signed}: ${excerpt(text)}`);
     }, BURST_MS);
   }
 

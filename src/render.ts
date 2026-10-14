@@ -1,7 +1,7 @@
 import { escapeHtml } from "./html.ts";
 import { currentSeal, entrySeal, type Seal } from "./seal.ts";
 import { DEFAULT_INK, INKS } from "./ink.ts";
-import type { SealEntry } from "./dictionary.ts";
+import { THEMES, sealsByTheme, type SealEntry } from "./dictionary.ts";
 import { claimOf, type Colophon } from "./db.ts";
 
 const dateFmt = new Intl.DateTimeFormat("en-AU", {
@@ -97,7 +97,7 @@ export function colophonEntry(c: Colophon, ownToken: string): string {
   return `<li class="colophon ${inkClass(c.ink)}${mine ? " colophon--mine" : ""}" id="c-${c.id}" data-id="${c.id}">
         <p class="colophon-body">${escapeHtml(c.body)}</p>
         <div class="colophon-foot">
-          <p class="colophon-date">${dateFmt.format(new Date(c.created_at))}${mine ? " — yours" : ""}</p>
+          <p class="colophon-date"><a class="colophon-link" href="/#c-${c.id}">${dateFmt.format(new Date(c.created_at))}</a>${mine ? " — yours" : ""}</p>
           ${sealMark(entrySeal(c))}
         </div>
       </li>`;
@@ -148,11 +148,12 @@ export interface Draft {
 const countFmt = new Intl.NumberFormat("en-AU");
 
 // The strip under the scroll and its cue; scroll.js draws the window and
-// rewrites the cue to the lines in view. Nothing to show on an empty scroll.
+// rewrites the cue to the lines in view. On an empty scroll both render
+// hidden, and scroll.js reveals them when the first line arrives.
 function overview(count: number): string {
-  if (count === 0) return "";
-  return `<div class="scroll-overview" aria-hidden="true"><div class="scroll-overview-window"></div></div>
-          <p class="scroll-cue">${countFmt.format(count)} ${count === 1 ? "line" : "lines"} · newest at the left</p>`;
+  const hidden = count === 0 ? " hidden" : "";
+  return `<div class="scroll-overview" aria-hidden="true"${hidden}><div class="scroll-overview-window"></div></div>
+          <p class="scroll-cue"${hidden}>${countFmt.format(count)} ${count === 1 ? "line" : "lines"} · newest at the left</p>`;
 }
 
 export function renderIndex(colophons: Colophon[], ownToken: string, error?: string, draft?: Draft): string {
@@ -240,7 +241,43 @@ export interface SealPage {
   wanted?: string;
   justClaimed?: string;
   released?: boolean;
+  theme?: string;
+  page?: string;
 }
+
+export const SEALS_PER_PAGE = 60;
+
+// A page number from the query string: a small positive integer, else 1.
+function pageNumber(raw: string | undefined, pages: number): number {
+  const n = /^[1-9][0-9]{0,3}$/.test(raw ?? "") ? Number(raw) : 1;
+  return Math.min(n, Math.max(1, pages));
+}
+
+function sealList(all: SealEntry[], page: SealPage, ownGlyph: string | undefined, base: string): string {
+  const pages = Math.ceil(all.length / SEALS_PER_PAGE);
+  const n = pageNumber(page.page, pages);
+  const shown = all.slice((n - 1) * SEALS_PER_PAGE, n * SEALS_PER_PAGE);
+  const link = (to: number, text: string, rel: string) =>
+    `<a href="${base}${to > 1 ? `&amp;page=${to}` : ""}" rel="${rel}">${text}</a>`;
+  const nav =
+    pages > 1
+      ? `<nav class="seal-pages" aria-label="Pages of seals">${n > 1 ? link(n - 1, "← Previous", "prev") : ""}
+            <span>Page ${n} of ${pages}</span>${n < pages ? link(n + 1, "Next →", "next") : ""}</nav>`
+      : "";
+  return `<ul class="seal-results">${shown.map((r) => sealResult(r, page, ownGlyph)).join("")}</ul>${nav}`;
+}
+
+function themeLinks(current: string | undefined): string {
+  return `<nav class="seal-themes" aria-labelledby="themes-heading">
+            <h2 id="themes-heading">Or browse by theme</h2>
+            <ul>${THEMES.map(
+              (t) =>
+                `<li><a href="/seal?theme=${t.key}"${t.key === current ? ` aria-current="page"` : ""}>${escapeHtml(t.name)}</a></li>`,
+            ).join("")}</ul>
+          </nav>`;
+}
+
+const seals = (n: number) => `${countFmt.format(n)} ${n === 1 ? "seal" : "seals"}`;
 
 function sealResult(entry: SealEntry, page: SealPage, ownGlyph: string | undefined): string {
   const label = `<span class="result-glyph" lang="zh-Hant">${entry.glyph}</span> ${escapeHtml(entry.pinyin)}: ${escapeHtml(entry.gloss)}`;
@@ -270,14 +307,20 @@ export function renderSealChooser(page: SealPage): string {
     notice = `<p class="notice" role="status">Seal given up. You sign with your browser's random seal again.</p>`;
   }
 
+  const theme = page.query ? undefined : THEMES.find((t) => t.key === page.theme);
   let results = "";
   if (page.query) {
     results =
       page.results.length > 0
-        ? `<ul class="seal-results">${page.results.map((r) => sealResult(r, page, ownGlyph)).join("")}</ul>`
+        ? `<h2 class="seal-count">${seals(page.results.length)} for “${escapeHtml(page.query)}”</h2>
+          ${sealList(page.results, page, ownGlyph, `/seal?q=${encodeURIComponent(page.query)}`)}`
         : `<p>No seal for that word. Try ${page.suggestions
             .map((w) => `<a href="/seal?q=${encodeURIComponent(w)}">${escapeHtml(w)}</a>`)
             .join(", ")}.</p>`;
+  } else if (theme) {
+    const all = sealsByTheme(theme.key);
+    results = `<h2 class="seal-count">${escapeHtml(theme.name)}: ${seals(all.length)}</h2>
+          ${sealList(all, page, ownGlyph, `/seal?theme=${theme.key}`)}`;
   }
 
   const body = `
@@ -297,6 +340,7 @@ export function renderSealChooser(page: SealPage): string {
               autocomplete="off" spellcheck="true" />
             <button type="submit">Find a seal</button>
           </form>
+          ${themeLinks(theme?.key)}
           ${results}
           ${
             own.chosen

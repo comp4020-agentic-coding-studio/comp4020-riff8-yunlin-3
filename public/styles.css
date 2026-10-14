@@ -363,6 +363,20 @@ figcaption {
   color: var(--ink-soft);
 }
 
+/* The date is the link to its line: quiet, the colour of the date, with
+   an underline on hover and the usual focus ring. */
+.colophon-link,
+.colophon-link:visited {
+  color: inherit;
+  text-decoration-color: transparent;
+}
+
+.colophon-link:hover,
+.colophon-link:focus-visible {
+  color: inherit;
+  text-decoration-color: currentcolor;
+}
+
 .colophon--mine .colophon-date {
   color: var(--seal);
 }
@@ -708,6 +722,42 @@ button:hover {
   border: 1px solid var(--ink-soft);
   background: #fbf8f2;
   color: var(--ink);
+}
+
+.seal-themes h2,
+.seal-count {
+  margin: 1.5rem 0 0.4rem;
+  font-size: 1.1rem;
+}
+
+.seal-themes ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each theme link is a 44px-tall target. */
+.seal-themes a,
+.seal-pages a {
+  display: inline-block;
+  padding-block: 0.65rem;
+}
+
+.seal-themes a[aria-current="page"] {
+  font-weight: bold;
+  text-decoration-thickness: 0.15em;
+}
+
+.seal-pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 1.25rem;
+  margin-top: 0.5rem;
+  color: var(--ink-soft);
 }
 
 .seal-results {

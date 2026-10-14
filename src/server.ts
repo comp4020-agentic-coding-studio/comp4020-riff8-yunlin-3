@@ -248,6 +248,9 @@ async function handle(req: import("node:http").IncomingMessage, res: import("nod
         wanted: wanted?.glyph,
         justClaimed: claimedParam && lookupGlyph(claimedParam) ? claimedParam : undefined,
         released: url.searchParams.has("released"),
+        // Raw; renderSealChooser validates both and never echoes a bad theme.
+        theme: url.searchParams.get("theme") ?? undefined,
+        page: url.searchParams.get("page") ?? undefined,
       }),
     );
     return;

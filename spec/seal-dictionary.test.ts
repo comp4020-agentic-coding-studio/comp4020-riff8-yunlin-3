@@ -66,6 +66,30 @@ it("an English word finds seals by meaning; anything else finds only dictionary 
 
 const glyphsFor = (q: string) => searchSeals(q).map((e) => e.glyph);
 
+it("search ignores case and folds simple plurals", () => {
+  expect(glyphsFor("Mountains")[0]).toBe("山");
+  expect(glyphsFor("MOUNTAIN")).toEqual(glyphsFor("mountain"));
+  expect(glyphsFor("RIVERS")).toEqual(expect.arrayContaining(["川", "江"]));
+  expect(glyphsFor("Friends")).toContain("友");
+  expect(glyphsFor("memories")).toContain("憶");
+});
+
+it("search folds -ing and -ed", () => {
+  expect(glyphsFor("dreaming")).toContain("夢");
+  expect(glyphsFor("dreamed")).toContain("夢");
+  expect(glyphsFor("remembered")).toEqual(expect.arrayContaining(["記", "念", "憶"]));
+  expect(glyphsFor("walking")).toContain("行");
+  expect(glyphsFor("treasured")).toEqual(expect.arrayContaining(["藏", "珍"]));
+});
+
+it("a common word leads with its plainest seal, and a short typo isn't 'corrected' into another word", () => {
+  expect(glyphsFor("home")[0]).toBe("家");
+  expect(glyphsFor("Homes")[0]).toBe("家");
+  // Near-spelling suggestions only for longer words: "dog" must not become "fog".
+  expect(suggestWords("dog")).not.toContain("fog");
+  expect(suggestWords("fog")).not.toContain("dog");
+});
+
 it("an exact word match ranks above a folded one, a prefix, or a gloss", () => {
   for (const q of ["dream", "river", "tea", "moon", "rain"]) {
     const results = searchSeals(q);

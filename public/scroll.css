@@ -182,6 +182,19 @@
   overscroll-behavior-y: contain;
 }
 
+/* A body taller than its sheet (320 full-width characters, say) scrolls
+   inside the sheet. scroll.js marks it: the last lines fade into the paper
+   while more is hidden below, and the body takes focus so the arrow keys
+   can scroll it. */
+.scroll .colophon-body[data-more] {
+  mask-image: linear-gradient(#000 calc(100% - 2.2rem), transparent);
+}
+
+.scroll .colophon-body[data-overflow]:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 /* The foot: date, then the seal pressed beside it, closing the passage. */
 .scroll .colophon-foot {
   position: relative;

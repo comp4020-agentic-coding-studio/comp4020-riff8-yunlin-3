@@ -143,6 +143,8 @@
     // scroll keep Enter and Space (never handled here); arrows, pages,
     // Home and End still move the scroll from them.
     if (event.target.closest?.("input, textarea, select, button, [contenteditable]")) return;
+    // A focused long line scrolls itself: its keys move its text.
+    if (event.target.hasAttribute?.("data-overflow")) return;
     const page = scroller.clientWidth * 0.85;
     const moves = {
       ArrowRight: () => moveTo(nextEdge(frame ? target : scroller.scrollLeft, 1)),
@@ -354,6 +356,9 @@
     }
     setListWidth(x);
     dress();
+    // Band height or widths may have changed: overflow needs re-checking.
+    for (const b of list ? list.querySelectorAll("[data-overflow-checked]") : []) b.removeAttribute("data-overflow-checked");
+    checkSoon();
   };
 
   // One sheet inserted at DOM index i: shift the geometry after it by its
@@ -383,6 +388,7 @@
     geo.count = n;
     setListWidth(ends[n - 1]);
     dress();
+    checkSoon();
   };
 
   // Everything drawn from the geometry: the strip's window and ticks, the
@@ -479,7 +485,45 @@
       });
   };
 
-  scroller.addEventListener("scroll", repaint, { passive: true });
+  // Bodies too tall for their sheet: checked only for the sheets in view,
+  // once scrolling settles (never per frame), and kept up to date as a
+  // body is scrolled. Marked bodies fade at the foot while more is below
+  // and become focusable, so the keyboard can reach the rest.
+  const more = (body) => {
+    const below = body.scrollTop + body.clientHeight < body.scrollHeight - 2;
+    body.toggleAttribute("data-more", below);
+  };
+  const checkOverflow = () => {
+    if (!list || !geo.count) return;
+    const left = scroller.scrollLeft;
+    const lo = Math.max(0, above(ends, left));
+    const hi = Math.min(geo.count - 1, above(starts, left + geo.clientWidth) - 1);
+    for (let i = lo; i <= hi; i++) {
+      const body = list.children[i]?.querySelector(".colophon-body");
+      if (!body || body.hasAttribute("data-overflow-checked")) continue;
+      body.setAttribute("data-overflow-checked", "");
+      if (body.scrollHeight > body.clientHeight + 2) {
+        body.setAttribute("data-overflow", "");
+        body.tabIndex = 0;
+        more(body);
+      }
+    }
+  };
+  let settle = 0;
+  const checkSoon = () => {
+    clearTimeout(settle);
+    settle = setTimeout(checkOverflow, 150);
+  };
+  scroller.addEventListener(
+    "scroll",
+    (event) => {
+      if (event.target === scroller) {
+        repaint();
+        checkSoon();
+      } else if (event.target.hasAttribute?.("data-overflow")) more(event.target);
+    },
+    { passive: true, capture: true },
+  );
   window.addEventListener("resize", () => relayout(true), { passive: true });
   if ("ResizeObserver" in window) {
     // The scroller and strip change with the viewport and the band height.

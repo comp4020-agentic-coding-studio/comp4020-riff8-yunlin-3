@@ -8,16 +8,21 @@
    public/scroll.js only enhances: eased wheel, keys, jumps, and keeping a
    reader's place when a line arrives.
 
-   Band height follows the content, between 18rem and the room between the
-   header and the dock (--band-cap: --band-avail measured by scroll.js, a
-   CSS estimate otherwise, never over 30rem). Sheets are as wide as their
-   line needs (short, mid, long: render.ts buckets them). An off-screen
-   long sheet's placeholder is as tall as the cap, so any scroll holding a
-   long line sits at the cap and the band never changes height mid-scroll
-   as sheets render; a scroll of short lines stays short. Where a body is
-   taller than its sheet, it scrolls inside the sheet, never clipped. */
+   Band height: the room between the header and the dock (--band-cap:
+   --band-avail measured by scroll.js, a CSS estimate otherwise), between
+   18rem and 30rem. Sheets are as wide as their line needs (short, mid,
+   long: render.ts buckets them), each a fixed width per breakpoint. Every
+   sheet is a fixed, contained box, so a sheet coming into view never
+   changes any size and the browser never re-measures the whole row; this
+   is what keeps a scroll of 10,000 lines smooth. Where a body is taller
+   than its sheet, it scrolls inside the sheet, never clipped. */
 
 .handscroll {
+  /* Sheet widths are fixed lengths, not clamp() on vw: every sheet's box is
+     known before it renders, which keeps a 10,000-line scroll cheap. */
+  --sheet-short: 10rem;
+  --sheet-mid: 14rem;
+  --sheet-long: 18rem;
   --band-cap: clamp(18rem, var(--band-avail, calc(100dvh - 10rem - var(--dock-h, 7rem))), 30rem);
 
   position: relative;
@@ -110,8 +115,7 @@
   justify-content: flex-start;
   width: max-content;
   min-width: 100%;
-  min-height: 18rem;
-  max-height: var(--band-cap);
+  height: var(--band-cap);
   margin: 0;
   padding: 0 0.6rem;
   list-style: none;
@@ -125,8 +129,8 @@
   flex: none;
   flex-direction: column;
   gap: 0.6rem;
-  width: clamp(15rem, 72vw, 18rem);
-  max-height: var(--band-cap);
+  width: var(--sheet-long);
+  height: 100%;
   padding: 1.3rem 1.2rem 1rem;
   border: 0;
   border-left: 1px solid rgb(185 160 106 / 28%);
@@ -137,20 +141,37 @@
   background-image:
     repeating-linear-gradient(0deg, rgb(235 227 211 / 60%) 0 1px, transparent 1px 0.35rem),
     repeating-linear-gradient(90deg, rgb(235 227 211 / 45%) 0 1px, transparent 1px 0.3rem);
+  contain: strict;
   content-visibility: auto;
-  contain-intrinsic-size: auto 18rem auto 30rem;
+  contain-intrinsic-size: var(--sheet-long) var(--band-cap);
 }
 
 /* Width by length, so a one-line note isn't a column of empty paper and a
    phone shows two short ones at once. Placeholder sizes match. */
 .scroll .colophon--short {
-  width: clamp(8rem, 42vw, 10rem);
-  contain-intrinsic-size: auto 10rem auto 12rem;
+  width: var(--sheet-short);
+  contain-intrinsic-size: var(--sheet-short) var(--band-cap);
 }
 
 .scroll .colophon--mid {
-  width: clamp(12rem, 60vw, 14rem);
-  contain-intrinsic-size: auto 14rem auto 18rem;
+  width: var(--sheet-mid);
+  contain-intrinsic-size: var(--sheet-mid) var(--band-cap);
+}
+
+/* Once scroll.js has summed the sheets' widths onto the list, the list is
+   a fixed-size box too, so a sheet scrolling into view never makes the
+   browser re-measure the whole row. */
+.scroll .colophon-list[data-sized] {
+  contain: strict;
+}
+
+/* With scroll.js, it decides which sheets render: those within a screen
+   of the view get an inline content-visibility: visible. Cheaper than
+   content-visibility: auto, whose per-frame visibility pass over every
+   sheet is what made a 10,000-line scroll stutter. Without the script,
+   auto still applies. */
+.scroll .colophon-list[data-windowed] .colophon {
+  content-visibility: hidden;
 }
 
 .scroll .colophon--short .colophon-body {
@@ -278,6 +299,13 @@
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
+}
+
+/* Narrow screens: a long sheet leaves a peek of the next one. */
+@media (width <= 26rem) {
+  .handscroll {
+    --sheet-long: 17rem;
+  }
 }
 
 /* One line on a phone: the cue stretches to the strip's width and tightens. */

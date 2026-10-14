@@ -169,13 +169,17 @@
 
   const afterArrive = (state, li) => {
     if (!state) return;
+    // The list's width is set by layout(), not by its content, so lay out
+    // now (arithmetic, no per-sheet reads) before measuring the growth.
+    layout();
     const grew = scroller.scrollWidth - state.scrollWidth;
     if (!state.atNewest) {
       // Reading elsewhere: a sheet inserted before the view's start pushed
       // what's in view right by its width; push the view the same distance,
       // in the same frame. A sheet landing to the right of the view (an own
       // line held back while newer ones arrived) moves nothing in view.
-      const before = !li || li.offsetLeft < state.scrollLeft;
+      const at = li && list ? Array.prototype.indexOf.call(list.children, li) : -1;
+      const before = at < 0 || starts[at] < state.scrollLeft;
       if (before) {
         const moving = frame !== 0;
         scroller.scrollLeft = state.scrollLeft + grew;
@@ -261,6 +265,29 @@
   let cueText = "";
   let painting = 0;
 
+  // The render window: only sheets within one screen either side of the
+  // view render; the rest stay contained placeholders of known size.
+  // Updated from the cached geometry in the scroll handler itself (no
+  // layout read), so a revealed sheet is ready before the frame paints.
+  let nearLo = 0;
+  let nearHi = -1;
+  const near = () => {
+    if (!list) return;
+    const items = list.children;
+    const n = Math.min(items.length, starts.length);
+    const left = scroller.scrollLeft;
+    const lo = n ? Math.max(0, above(ends, left - geo.clientWidth)) : 0;
+    const hi = n ? Math.min(n - 1, above(starts, left + 2 * geo.clientWidth) - 1) : -1;
+    for (let i = nearLo; i <= Math.min(nearHi, n - 1); i++) {
+      if (i < lo || i > hi) items[i].style.contentVisibility = "";
+    }
+    for (let i = lo; i <= hi; i++) {
+      if (i < nearLo || i > nearHi) items[i].style.contentVisibility = "visible";
+    }
+    nearLo = lo;
+    nearHi = hi;
+  };
+
   const paint = () => {
     painting = 0;
     const left = scroller.scrollLeft;
@@ -279,7 +306,12 @@
       const range = hi === lo ? `Line ${fmt.format(hi)}` : `Lines ${fmt.format(lo)}–${fmt.format(hi)}`;
       const text = `${range} of ${fmt.format(geo.count)} · newest at the left${geo.mine ? " · yours in red" : ""}`;
       if (text !== cueText) {
-        cue.textContent = text;
+        // Rewrite the one text node in place: replacing the cue's children
+        // (textContent) made the page restyle every sheet (the stylesheet's
+        // :has() rules) on every scroll frame, ~12 ms at 10,000 lines.
+        const node = cue.firstChild;
+        if (node && node.nodeType === 3 && !node.nextSibling) node.data = text;
+        else cue.textContent = text;
         cueText = text;
       }
     }
@@ -288,21 +320,55 @@
     if (!painting) painting = requestAnimationFrame(paint);
   };
 
+  // The three sheet widths in px, as scroll.css resolves them right now
+  // (they change at a breakpoint). One probe, no per-sheet reads.
+  const sheetWidths = () => {
+    const cs = getComputedStyle(band || scroller);
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:absolute;visibility:hidden;height:0";
+    (band || scroller).append(probe);
+    const px = {};
+    for (const k of ["short", "mid", "long"]) {
+      probe.style.width = cs.getPropertyValue(`--sheet-${k}`) || "18rem";
+      px[k] = probe.getBoundingClientRect().width;
+    }
+    probe.remove();
+    return px;
+  };
+
   const layout = () => {
     const items = list ? list.children : [];
     geo.count = items.length;
     starts = new Float64Array(items.length);
     ends = new Float64Array(items.length);
     mids = new Float64Array(items.length);
-    // Visual order regardless of DOM order: newest-first DOM (D10) reads
-    // straight through; an oldest-first list would read backwards.
+    // Geometry by arithmetic, not by asking the browser where each of
+    // thousands of sheets is: each sheet's width is fixed by its length
+    // class (scroll.css), so positions are a running sum. The list (newest
+    // first, D10) reads left to right in DOM order. The sum is then set as
+    // the list's own width, which lets scroll.css contain the whole row.
     const n = items.length;
-    const backwards = n > 1 && items[0].offsetLeft > items[n - 1].offsetLeft;
+    const width = sheetWidths();
+    let x = list ? parseFloat(getComputedStyle(list).paddingLeft) || 0 : 0;
     for (let i = 0; i < n; i++) {
-      const li = items[backwards ? n - 1 - i : i];
-      starts[i] = li.offsetLeft;
-      ends[i] = li.offsetLeft + li.offsetWidth;
-      mids[i] = (starts[i] + ends[i]) / 2;
+      const c = items[i].classList;
+      const w = c.contains("colophon--short") ? width.short : c.contains("colophon--mid") ? width.mid : width.long;
+      starts[i] = x;
+      x += w;
+      ends[i] = x;
+      mids[i] = x - w / 2;
+    }
+    if (list && n) {
+      const total = x + (parseFloat(getComputedStyle(list).paddingRight) || 0);
+      list.style.width = `${Math.max(total, scroller.clientWidth)}px`;
+      list.dataset.sized = "";
+      // Indices may have shifted (an arrival): rebuild the window from scratch.
+      for (let i = nearLo; i <= Math.min(nearHi, n - 1); i++) items[i].style.contentVisibility = "";
+      nearLo = 0;
+      nearHi = -1;
+      geo.clientWidth = scroller.clientWidth;
+      near();
+      list.dataset.windowed = "";
     }
     geo.scrollWidth = scroller.scrollWidth || 1;
     geo.clientWidth = scroller.clientWidth;
@@ -314,8 +380,8 @@
       // one tick spanning them, so a run of lines reads as a run, not a blur.
       const MERGE_PX = 4;
       const xs = [];
-      for (const li of scroller.querySelectorAll(".colophon--mine")) {
-        xs.push(((li.offsetLeft + li.offsetWidth / 2) / geo.scrollWidth) * geo.stripWidth);
+      for (let i = 0; i < n; i++) {
+        if (items[i].classList.contains("colophon--mine")) xs.push((mids[i] / geo.scrollWidth) * geo.stripWidth);
       }
       geo.mine = xs.length;
       xs.sort((a, b) => a - b);
@@ -356,7 +422,14 @@
       });
   };
 
-  scroller.addEventListener("scroll", repaint, { passive: true });
+  scroller.addEventListener(
+    "scroll",
+    () => {
+      near();
+      repaint();
+    },
+    { passive: true },
+  );
   window.addEventListener("resize", relayout, { passive: true });
   if ("ResizeObserver" in window) {
     // The list grows on every arrival; the scroller and strip change with

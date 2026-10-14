@@ -167,19 +167,26 @@
     scrollWidth: scroller.scrollWidth,
   });
 
-  const afterArrive = (state, _li) => {
+  const afterArrive = (state, li) => {
     if (!state) return;
     const grew = scroller.scrollWidth - state.scrollWidth;
     if (!state.atNewest) {
-      // Reading elsewhere: the new sheet pushed everything right by its
-      // width; push the view the same distance, in the same frame.
-      const moving = frame !== 0;
-      scroller.scrollLeft = state.scrollLeft + grew;
-      if (moving) {
-        pos += grew;
-        target += grew;
-        written = scroller.scrollLeft;
+      // Reading elsewhere: a sheet inserted before the view's start pushed
+      // what's in view right by its width; push the view the same distance,
+      // in the same frame. A sheet landing to the right of the view (an own
+      // line held back while newer ones arrived) moves nothing in view.
+      const before = !li || li.offsetLeft < state.scrollLeft;
+      if (before) {
+        const moving = frame !== 0;
+        scroller.scrollLeft = state.scrollLeft + grew;
+        if (moving) {
+          pos += grew;
+          target += grew;
+          written = scroller.scrollLeft;
+        }
       }
+      // Your own line: you asked for it, so go and watch it land.
+      if (li?.classList.contains("colophon--mine") && li.dataset.id) toEntry(li.dataset.id);
       return;
     }
     if (reduced()) {
@@ -401,8 +408,32 @@
   const fromHash = () => {
     const m = /^#c-(\d+)$/.exec(location.hash);
     if (m) toEntry(m[1]);
+    return Boolean(m && document.getElementById(`c-${m[1]}`));
   };
-  window.addEventListener("hashchange", fromHash, { passive: true });
+  // The browser's own fragment jump scrolls the page so the sheet's top is
+  // at the window's top, cutting off the band and the header above it. The
+  // scroll is the first thing on the page, so undo that jump: once on a
+  // permalinked load, and on each hash navigation to a line. A reader's
+  // own page scrolling is never touched.
+  const unjump = () => {
+    const top = band?.getBoundingClientRect().top ?? 0;
+    if (top < 0) window.scrollTo(0, 0);
+  };
+  window.addEventListener(
+    "hashchange",
+    () => {
+      if (fromHash()) unjump();
+    },
+    { passive: true },
+  );
+  // Back or Forward to an entry without a line hash (the page before a date
+  // link was followed): return to where the reader was then. A #c- hash is
+  // handled by hashchange above.
+  window.addEventListener("popstate", (event) => {
+    if (/^#c-\d+$/.test(location.hash)) return;
+    const left = event.state?.scrollLeft;
+    if (typeof left === "number") moveTo(left);
+  });
   // A link to a line already on the page (a sheet's date, a permalink in
   // the dock's status) glides along the scroll instead of letting the
   // browser jump the page and the scroller in one step. Modified clicks
@@ -417,11 +448,21 @@
     if (!m || url.origin !== location.origin || url.pathname !== location.pathname || url.search !== location.search) return;
     if (!document.getElementById(`c-${m[1]}`)) return;
     event.preventDefault();
-    if (location.hash !== url.hash) history.pushState(null, "", url.hash);
+    if (location.hash !== url.hash) {
+      history.replaceState({ ...history.state, scrollLeft: scroller.scrollLeft }, "");
+      history.pushState({ scrollLeft: null }, "", url.hash);
+    }
     toEntry(m[1]);
   });
   // After layout settles (fonts, band height), so the centring is right.
-  requestAnimationFrame(() => requestAnimationFrame(fromHash));
+  // On a permalinked load the browser has already jumped the page down to
+  // the fragment; the scroll is the first thing on the page, so put the
+  // page back at the top once, and let the glide do the rest.
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      if (fromHash()) unjump();
+    }),
+  );
 
   window.colophonScroll = { atNewest, beforeArrive, afterArrive, toNewest, toEntry };
 })();

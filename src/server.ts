@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { readFile, readFileSync } from "node:fs";
+import { readdirSync, readFile, readFileSync } from "node:fs";
 import { extname } from "node:path";
 import { addColophon, claimedGlyphs, claimOf, claimSeal, listColophons, releaseSeal } from "./db.ts";
 import { sealToken } from "./cookies.ts";
@@ -21,7 +21,24 @@ import { log, who } from "./log.ts";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const README = readFileSync("README.md", "utf8");
-const ADR_0001 = readFileSync("docs/adr/0001-seal-claims.md", "utf8");
+
+// Every decision record, read once at startup and served at /adr/<slug>/.
+// A request only ever looks a slug up in this map; no part of the URL reaches
+// the filesystem. A missing docs/adr/ or file just means fewer ADRs.
+const ADR_KICKERS: Record<string, string> = {
+  "0001-seal-claims": "a decision about several people at once",
+  "0002-who-did-what": "who did what, in the logs",
+};
+const ADRS = new Map<string, { number: string; markdown: string }>();
+try {
+  for (const file of readdirSync("docs/adr")) {
+    const m = /^((\d{4})-[a-z0-9-]+)\.md$/.exec(file);
+    if (!m) continue;
+    try {
+      ADRS.set(m[1]!, { number: m[2]!, markdown: readFileSync(`docs/adr/${file}`, "utf8") });
+    } catch {}
+  }
+} catch {}
 
 const MIME: Record<string, string> = {
   ".avif": "image/avif",
@@ -218,9 +235,17 @@ async function handle(req: import("node:http").IncomingMessage, res: import("nod
     return;
   }
 
-  if (req.method === "GET" && url.pathname === "/adr/0001-seal-claims/") {
+  const adr = req.method === "GET" ? /^\/adr\/([a-z0-9-]+)\/$/.exec(url.pathname) : null;
+  const record = adr ? ADRS.get(adr[1]!) : undefined;
+  if (adr && record) {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(renderReadme(renderMarkdown(ADR_0001), "ADR 0001 — Colophon", "a decision about several people at once"));
+    res.end(
+      renderReadme(
+        renderMarkdown(record.markdown),
+        `ADR ${record.number} — Colophon`,
+        ADR_KICKERS[adr[1]!] ?? "a decision record",
+      ),
+    );
     return;
   }
 

@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { log, who } from "../src/log.ts";
+import { baseUrl } from "./helpers.ts";
 import { sealGlyph } from "../src/seal.ts";
 
 // Crit 10: the logs say who did what, without saying who anyone is. A visitor
@@ -197,4 +198,12 @@ it("a body cut off mid-request logs an error line with no body, and the server k
   expect(child!.exitCode).toBeNull();
   expect((await fetch(new URL("/", base))).status).toBe(200);
   expect(stdout).not.toContain("halfway-secret");
+});
+
+it("the logging decision is published as ADR 0002", async () => {
+  const res = await fetch(new URL("/adr/0002-who-did-what/", baseUrl));
+  expect(res.status).toBe(200);
+  const html = await res.text();
+  expect(html).toMatch(/who did what/i);
+  expect(html).toContain("colophon-log:");
 });

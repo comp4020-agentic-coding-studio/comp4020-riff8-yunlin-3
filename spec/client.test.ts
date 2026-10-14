@@ -23,10 +23,12 @@ class FakeEventSource {
   close(): void {}
 }
 
-async function openPage(): Promise<{ window: JSDOM["window"]; document: Document; errors: string[] }> {
+async function openPage(
+  scripts: string[] = ["/public/app.js"],
+): Promise<{ window: JSDOM["window"]; document: Document; errors: string[] }> {
   const cookie = await newVisitor();
   const html = await (await fetch(new URL("/", baseUrl), { headers: { Cookie: cookie } })).text();
-  const script = await (await fetch(new URL("/public/app.js", baseUrl))).text();
+  const sources = await Promise.all(scripts.map(async (src) => (await fetch(new URL(src, baseUrl))).text()));
   const errors: string[] = [];
   const virtualConsole = new VirtualConsole();
   virtualConsole.on("jsdomError", (e) => errors.push(String(e)));
@@ -36,9 +38,18 @@ async function openPage(): Promise<{ window: JSDOM["window"]; document: Document
   const w = dom.window as unknown as Record<string, unknown>;
   w.EventSource = FakeEventSource;
   w.colophonConfig = { handoffMs: 30 };
+  // jsdom has no matchMedia; every browser does. Report no preference.
+  w.matchMedia ??= (query: string) => ({
+    matches: false,
+    media: query,
+    addEventListener() {},
+    removeEventListener() {},
+    addListener() {},
+    removeListener() {},
+  });
   w.fetch = (url: string, init: RequestInit = {}) =>
     fetch(url, { ...init, headers: { ...(init.headers as Record<string, string>), Cookie: cookie } });
-  dom.window.eval(script);
+  for (const source of sources) dom.window.eval(source);
   return { window: dom.window, document: dom.window.document, errors };
 }
 
@@ -165,4 +176,24 @@ it("without the script the form is a plain post: the script is external and defe
   expect(form.getAttribute("method")).toBe("post");
   expect(form.getAttribute("action")).toBe("/colophons");
   expect(doc.querySelector(".lantern")).toBeNull();
+});
+
+// The scroll's motion script and the page script together, in the order the
+// page loads them: a live line from someone else still lands once, at the
+// newest end, and nothing throws (prompt.md §8 T1, T3; contract §S).
+it("with the scroll's script loaded first, a live arrival still lands once at the newest end", async () => {
+  const { window, document, errors } = await openPage(["/public/scroll.js", "/public/app.js"]);
+  const api = (window as unknown as { colophonScroll?: Record<string, unknown> }).colophonScroll;
+  expect(api && typeof api.beforeArrive).toBe("function");
+  expect(api && typeof api.afterArrive).toBe("function");
+  const ids = [...document.querySelectorAll<HTMLElement>("li.colophon")].map((li) => Number(li.dataset.id));
+  const next = Math.max(0, ...ids) + 200000;
+  const html = `<li class="colophon ink--zi" data-id="${next}"><p class="colophon-body">from the far bank</p></li>`;
+  FakeEventSource.last!.emit("colophon", { id: next, html, legend: "" });
+  FakeEventSource.last!.emit("colophon", { id: next, html, legend: "" });
+  await settle(100);
+  const list = [...document.querySelectorAll<HTMLElement>(".scroll .colophon-list li.colophon")];
+  expect(list.at(-1)!.dataset.id).toBe(String(next));
+  expect(list.filter((li) => li.dataset.id === String(next))).toHaveLength(1);
+  expect(errors).toEqual([]);
 });

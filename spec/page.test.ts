@@ -1,7 +1,9 @@
 import { JSDOM } from "jsdom";
-import { readFileSync } from "node:fs";
-import { expect, it } from "vitest";
-import { newVisitor, page, post } from "./helpers.ts";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, expect, it } from "vitest";
+import { marker, newVisitor, page, post } from "./helpers.ts";
 
 // Crit 10's shape for /: the visitors' colophons are the handscroll, and the
 // write form sits in a dock fixed on screen, outside the scroll's flow
@@ -40,4 +42,45 @@ it("a rejected line shows its error in the dock, next to the text", async () => 
   const error = d.querySelector(".form-error")!;
   expect(error.closest(".dock")).toBeTruthy();
   expect(error.nextElementSibling?.matches("form.write-form")).toBe(true);
+});
+
+it("the colophon list is the scroll: inside a focusable region, inside the mounted handscroll", async () => {
+  await post("/colophons", { body: marker("page-scroll") });
+  const d = doc(await page("/"));
+  const list = d.querySelector("ol.colophon-list")!;
+  expect(list).toBeTruthy();
+  const scroll = list.closest(".scroll")!;
+  expect(scroll, ".colophon-list sits inside .scroll").toBeTruthy();
+  expect(scroll.getAttribute("role")).toBe("region");
+  expect(scroll.getAttribute("tabindex")).toBe("0");
+  const label = scroll.getAttribute("aria-labelledby");
+  expect(label && d.getElementById(label)?.textContent?.trim()).toBeTruthy();
+  expect(scroll.closest(".handscroll")).toBeTruthy();
+  expect(list.querySelectorAll("li.colophon").length).toBeGreaterThan(0);
+});
+
+it("the watercolour painting is no longer inlined as the centrepiece", async () => {
+  const html = await page("/");
+  const d = doc(html);
+  expect(d.querySelector("figure.painting")).toBeNull();
+  expect(d.querySelector(".painting-art")).toBeNull();
+  // public/painting.svg's own root viewBox: the inlined painting, if it's back.
+  const viewBox = readFileSync("public/painting.svg", "utf8").match(/<svg[^>]*viewBox="([^"]+)"/)![1]!;
+  expect(html).not.toContain(`viewBox="${viewBox}"`);
+  expect(html).not.toContain("Spruce, granite and a path");
+});
+
+// An empty scroll can't be produced on the shared database, so this renders
+// the page directly against a scratch one.
+const scratch = mkdtempSync(join(tmpdir(), "colophon-page-"));
+afterAll(() => rmSync(scratch, { recursive: true, force: true }));
+
+it("an empty scroll says no one has written yet, inside the scroll", async () => {
+  process.env.DB_PATH = join(scratch, "empty.db");
+  const { renderIndex } = await import("../src/render.ts");
+  const d = doc(renderIndex([], "00000000-0000-4000-8000-000000000000"));
+  const note = d.querySelector(".empty-note")!;
+  expect(note.textContent).toMatch(/no one has written/i);
+  expect(note.closest(".scroll")).toBeTruthy();
+  expect(d.querySelector("form.write-form")!.closest(".dock")).toBeTruthy();
 });

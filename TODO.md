@@ -24,6 +24,14 @@ the same commit as the work.
 
 ## Done
 
+- [x] P1 L2: browse seals by theme on /seal (no JS, paginated, never
+  echoed), each sheet's date links to its line, other people's lines
+  announced with a short excerpt (glyph only while you type), the overview
+  strip appears with the first line, pages gzipped (1.15 MB to 53 kB at
+  2,000 lines). L3: sheets sized by their line, so short notes take a
+  narrow strip and two share a phone screen (087edcd). Testers: a11y L2 no
+  blockers; 942 Tab stops through the scroll is the one major (next)
+
 - [x] P1 the seal dictionary from 142 to 885 entries in nine themes, every
   batch checked row by row (nine wrong search words and one wrong glyph
   fixed); kinder ranked search: case, plurals, -ing/-ed, gloss words (ddc94e6)

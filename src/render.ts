@@ -163,7 +163,7 @@ export function renderIndex(colophons: Colophon[], ownToken: string, error?: str
   const body = `
       ${header("a shared margin on one painting", false, true)}
       <main id="main">
-        <section class="scroll-section" aria-labelledby="colophons-heading">
+        <section class="scroll-section">
           <h2 id="colophons-heading" class="visually-hidden">Colophons</h2>
           <div class="handscroll">
             <div class="handscroll-roller handscroll-roller--start" aria-hidden="true"></div>

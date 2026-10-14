@@ -1,4 +1,9 @@
-import { expect, inject } from "vitest";
+import { expect, inject, vi } from "vitest";
+
+// Several specs fetch and parse the whole served page, which grows with
+// every run on a reused local database (about a second per thousand lines in
+// jsdom). The assertions don't depend on it; only the time allowed does.
+vi.setConfig({ testTimeout: 30_000 });
 
 // Shared by the spec files that act as visitors. Every request manages its
 // own seal cookie by hand (fetch carries no cookie jar), so each call is a
@@ -110,4 +115,14 @@ export function openStream(
 // The ids of every entry on the page, in page order.
 export function entryIds(html: string): number[] {
   return [...html.matchAll(/data-id="(\d+)"/g)].map((m) => Number(m[1]));
+}
+
+// Poll until a condition holds (or time runs out), for outcomes that depend
+// on a real request finishing, rather than sleeping a fixed time and hoping.
+export async function until(pred: () => unknown, ms = 10_000): Promise<void> {
+  const end = Date.now() + ms;
+  while (!pred()) {
+    if (Date.now() > end) return;
+    await new Promise((r) => setTimeout(r, 15));
+  }
 }

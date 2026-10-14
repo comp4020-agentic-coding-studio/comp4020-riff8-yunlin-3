@@ -1,18 +1,12 @@
 import { JSDOM, VirtualConsole } from "jsdom";
 import { readFileSync } from "node:fs";
-import { expect, it, vi } from "vitest";
-import { baseUrl, marker, newVisitor } from "./helpers.ts";
+import { expect, it } from "vitest";
+import { baseUrl, marker, newVisitor, until } from "./helpers.ts";
 
 // The page's own script, as the running app serves it, run in jsdom against
 // the running app: real POSTs, real responses, and a fake EventSource the
 // test drives so it can echo a live event back on purpose. Lanterns are the
 // reward for an accepted line only; nothing typed is lost on a refusal.
-
-// Each test parses the whole served page in jsdom, which costs about a
-// second per thousand lines on the scroll; a local database reused across
-// many runs reaches thousands, past vitest's 5 s default. The assertions are
-// unchanged; only the time allowed scales with the scroll.
-vi.setConfig({ testTimeout: 30_000 });
 
 class FakeEventSource {
   static last: FakeEventSource | undefined;
@@ -58,6 +52,11 @@ async function openPage(
   w.fetch = (url: string, init: RequestInit = {}) =>
     fetch(url, { ...init, headers: { ...(init.headers as Record<string, string>), Cookie: cookie } });
   for (const source of sources) dom.window.eval(source);
+  // Parsing a long page blocks this process for seconds, long enough for the
+  // server's keep-alive timeout to close the pooled socket the page came
+  // over. One turn of the event loop lets the client see that close before
+  // the test's first request, rather than sending it down a dead socket.
+  await new Promise((r) => setTimeout(r, 50));
   return { window: dom.window, document: dom.window.document, errors };
 }
 
@@ -78,7 +77,7 @@ it("an accepted line launches exactly one lantern carrying it, then appears exac
   type(document, line);
   expect(document.querySelectorAll(".inkwell-mirror .ink-ch").length).toBe(line.length);
   document.querySelector<HTMLFormElement>(".write-form")!.requestSubmit();
-  await settle(200);
+  await until(() => entriesWith(document, line).length > 0);
 
   const lanterns = document.querySelectorAll(".lantern-sky .lantern");
   expect(lanterns).toHaveLength(1);
@@ -99,7 +98,7 @@ it("a refused line launches nothing and leaves the typed text where it was", asy
   document.querySelector("textarea")!.removeAttribute("required");
   const before = document.querySelectorAll("li.colophon").length;
   document.querySelector<HTMLFormElement>(".write-form")!.requestSubmit();
-  await settle();
+  await until(() => document.querySelector(".form-error"));
 
   expect(document.querySelectorAll(".lantern")).toHaveLength(0);
   expect(document.querySelector("textarea")!.value).toBe("   ");
@@ -112,12 +111,12 @@ it("markup in a line appears on the lantern as literal text, creating no element
   const line = `<img src=x onerror=alert(1)> ${marker("lantern-xss")}`;
   type(document, line);
   document.querySelector<HTMLFormElement>(".write-form")!.requestSubmit();
-  await settle(150);
+  await until(() => document.querySelector(".lantern"));
   const lantern = document.querySelector(".lantern")!;
   expect(lantern.querySelector(".lantern-text")!.textContent).toBe(line);
   expect(lantern.querySelector("img")).toBeNull();
   expect(document.querySelector(".inkwell-mirror img")).toBeNull();
-  await settle(200);
+  await until(() => entriesWith(document, line).length > 0);
   const entry = entriesWith(document, line)[0]!;
   expect(entry.querySelector("img")).toBeNull();
 });
@@ -129,7 +128,8 @@ it("a 320-character line is clipped on the lantern, but the listed entry is the 
   expect(line).toHaveLength(320);
   type(document, line);
   document.querySelector<HTMLFormElement>(".write-form")!.requestSubmit();
-  await settle(150);
+  await until(() => document.querySelector(".lantern-text") || document.querySelector(".form-error"));
+  expect(document.querySelector(".form-error")?.textContent ?? null, "the line was refused").toBeNull();
   const text = document.querySelector<HTMLElement>(".lantern-text")!;
   expect(text.textContent).toBe(line);
   // The clip is CSS only: a fixed box, hidden overflow and a fade.
@@ -137,7 +137,7 @@ it("a 320-character line is clipped on the lantern, but the listed entry is the 
   const rule = css.match(/\.lantern-text\s*\{([^}]*)\}/)![1]!;
   expect(rule).toMatch(/overflow:\s*hidden/);
   expect(rule).toMatch(/mask-image/);
-  await settle(200);
+  await until(() => entriesWith(document, line).length > 0);
   expect(entriesWith(document, line)).toHaveLength(1);
   const served = await (await fetch(new URL("/", baseUrl))).text();
   expect(served).toContain(line);
@@ -148,7 +148,8 @@ it("the writer's own entry is not duplicated when its live event echoes back", a
   const line = marker("echo");
   type(document, line);
   document.querySelector<HTMLFormElement>(".write-form")!.requestSubmit();
-  await settle(100);
+  // A lantern launches only on a 2xx, so once it's up the line is stored.
+  await until(() => document.querySelector(".lantern"));
   const id = Number(
     (await (await fetch(new URL("/", baseUrl))).text()).match(new RegExp(`data-id="(\\d+)"[^]*?${line}`))?.[1],
   );
@@ -230,7 +231,7 @@ it("a live line from someone else is announced with its glyph and an excerpt, as
   // Markup in the body and the seal label: if either were written with
   // innerHTML, an element would appear inside the status line.
   liveFrom(document, 300000, "heard &lt;b&gt;across&lt;/b&gt; the water", "Seal 守&lt;img/src=x&gt;, x: y");
-  await settle(1300);
+  await until(() => statusText(document).textContent);
   expect(status.textContent).toBe("A new line, signed 守<img/src=x>: heard <b>across</b> the water");
   expect(status.children).toHaveLength(0);
   expect(errors).toEqual([]);
@@ -241,7 +242,7 @@ it("a long line is announced as an excerpt of at most 80 characters, cut at a wo
   const status = statusText(document);
   const body = "the river runs past the pine and the pine stays where it is while the water goes on ".repeat(3).trim();
   liveFrom(document, 310000, body);
-  await settle(1300);
+  await until(() => statusText(document).textContent);
   const said = status.textContent!;
   const prefix = "A new line, signed 守: ";
   expect(said.startsWith(prefix)).toBe(true);
@@ -258,7 +259,7 @@ it("a long line is announced as an excerpt of at most 80 characters, cut at a wo
 it("a short line is announced whole, with no ellipsis", async () => {
   const { document } = await openPage();
   liveFrom(document, 315000, "  pine,\n  rock  ");
-  await settle(1300);
+  await until(() => statusText(document).textContent);
   expect(statusText(document).textContent).toBe("A new line, signed 守: pine, rock");
 });
 
@@ -267,7 +268,7 @@ it("while the visitor is writing, someone else's line is announced by glyph only
   const status = statusText(document);
   document.querySelector<HTMLTextAreaElement>("#body")!.focus();
   liveFrom(document, 320000, "do not read this over my typing");
-  await settle(1300);
+  await until(() => statusText(document).textContent);
   expect(status.textContent).toBe("A new line on the scroll, signed 守.");
 });
 
@@ -284,7 +285,7 @@ it("a burst of live lines is announced once, as a count", async () => {
       legend: "",
     });
   }
-  await settle(1300);
+  await until(() => statusText(document).textContent);
   expect(status.textContent).toMatch(/^3 new lines/);
 });
 
@@ -292,7 +293,7 @@ it("your own accepted line is announced as written in", async () => {
   const { document, errors } = await openPage();
   type(document, marker("announce-own"));
   document.querySelector<HTMLFormElement>(".write-form")!.requestSubmit();
-  await settle(300);
+  await until(() => statusText(document).textContent);
   expect(statusText(document).textContent).toBe("Your line is written in.");
   expect(errors).toEqual([]);
 });
@@ -309,7 +310,7 @@ it("after a refused line, focus is back in the text and the button was never dis
   watch.observe(button, { attributes: true });
   document.querySelector<HTMLFormElement>(".write-form")!.requestSubmit();
   expect(button.disabled).toBe(false);
-  await settle();
+  await until(() => document.querySelector(".form-error") && !button.hasAttribute("aria-disabled"));
   watch.disconnect();
   expect(document.querySelector(".form-error")).toBeTruthy();
   expect(document.activeElement).toBe(textarea);

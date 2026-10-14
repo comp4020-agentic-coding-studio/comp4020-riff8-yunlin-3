@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, expect, it } from "vitest";
-import { baseUrl, marker, newVisitor, page, post } from "./helpers.ts";
+import { baseUrl, marker, newVisitor, openStream, page, post } from "./helpers.ts";
 
 // Crit 10's shape for /: the visitors' colophons are the handscroll, and the
 // write form sits in a dock fixed on screen, outside the scroll's flow
@@ -115,6 +115,7 @@ it("the overview strip is hidden from assistive tech and nothing in it takes foc
   const d = doc(await page("/"));
   const strip = d.querySelector(".scroll-overview")!;
   expect(strip, "expected the overview strip on a scroll with lines").toBeTruthy();
+  expect(strip.hasAttribute("hidden")).toBe(false);
   expect(strip.getAttribute("aria-hidden")).toBe("true");
   expect(strip.hasAttribute("tabindex")).toBe(false);
   expect(strip.querySelector("[tabindex], a[href], button, input, select, textarea, summary")).toBeNull();
@@ -124,6 +125,33 @@ it("anything scrolled into view clears the dock: html's scroll-padding-bottom us
   const css = readFileSync("public/styles.css", "utf8");
   const rules = [...css.matchAll(/(?:^|})\s*html\s*\{([^}]*)\}/g)].map((m) => m[1]!);
   expect(rules.some((r) => /scroll-padding-bottom\s*:[^;]*var\(--dock-h\b/.test(r))).toBe(true);
+});
+
+// L2: each sheet's date is the link to that line, on the page and in the
+// live event that carries a new one.
+it("each sheet's date links to its own line, on the page and in a live entry", async () => {
+  const cookie = await newVisitor();
+  const stream = openStream("/events", { Cookie: cookie });
+  await stream.ready;
+  try {
+    const line = marker("permalink");
+    await post("/colophons", { body: line }, cookie);
+    const li = [...doc(await page("/", cookie)).querySelectorAll("li.colophon")].find((el) =>
+      el.textContent!.includes(line),
+    )!;
+    const id = li.getAttribute("data-id")!;
+    expect(li.id).toBe(`c-${id}`);
+    const link = li.querySelector<HTMLAnchorElement>(".colophon-date a.colophon-link")!;
+    expect(link.getAttribute("href")).toBe(`/#c-${id}`);
+    expect(link.textContent!.trim().length).toBeGreaterThan(0);
+
+    expect(await stream.waitFor((e) => e.some((ev) => ev.data.id === Number(id)), 3000)).toBe(true);
+    const live = stream.events.find((ev) => ev.data.id === Number(id))!;
+    const liveLink = doc(`<ol>${live.data.html}</ol>`).querySelector(".colophon-date a.colophon-link")!;
+    expect(liveLink.getAttribute("href")).toBe(`/#c-${id}`);
+  } finally {
+    stream.close();
+  }
 });
 
 // An empty scroll can't be produced on the shared database, so this renders
@@ -139,4 +167,13 @@ it("an empty scroll says no one has written yet, inside the scroll", async () =>
   expect(note.textContent).toMatch(/no one has written/i);
   expect(note.closest(".scroll")).toBeTruthy();
   expect(d.querySelector("form.write-form")!.closest(".dock")).toBeTruthy();
+  // The strip and its cue are always there, hidden until a first line, so
+  // scroll.js can reveal them when one arrives live.
+  const strip = d.querySelector(".scroll-overview")!;
+  const cue = d.querySelector(".scroll-cue")!;
+  expect(strip).toBeTruthy();
+  expect(cue).toBeTruthy();
+  expect(strip.hasAttribute("hidden")).toBe(true);
+  expect(cue.hasAttribute("hidden")).toBe(true);
+  expect(strip.getAttribute("aria-hidden")).toBe("true");
 });

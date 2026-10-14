@@ -271,13 +271,16 @@ h3 {
   mask-composite: intersect;
 }
 
-.site-header h1 {
+.site-header h1,
+.site-header .site-title {
   margin: 0;
+  line-height: 1.2;
   font-size: 2.1rem;
   letter-spacing: 0.02em;
 }
 
-.site-header h1 a {
+.site-header h1 a,
+.site-header .site-title a {
   color: inherit;
   text-decoration: none;
 }
@@ -489,7 +492,9 @@ figcaption {
 }
 
 .seal-legend summary {
-  display: inline-block;
+  display: list-item;
+  list-style-position: inside;
+  width: fit-content;
   min-height: 2.75rem;
   padding-block: 0.6rem;
   font-size: 1rem;
@@ -497,17 +502,10 @@ figcaption {
   cursor: pointer;
 }
 
-.seal-legend summary::before {
-  content: "▸ ";
+/* The native disclosure marker: not part of the summary's accessible name,
+   unlike text or ::before content. */
+.seal-legend summary::marker {
   color: var(--ink-soft);
-}
-
-.seal-legend[open] summary::before {
-  content: "▾ ";
-}
-
-.seal-legend summary::-webkit-details-marker {
-  display: none;
 }
 
 .seal-legend ul {
@@ -1387,11 +1385,12 @@ body.page-scroll {
   }
 }
 
-/* Phone: compact until focused. One line of text, five 44px ink chips
-   beside the button, the seal line under them. Focus anywhere in the dock
-   opens the text to three lines and shows the count beside the seal line;
-   the rows below the button keep their height, so it stays put. */
-@media (width < 48rem) {
+/* Phone, or any short viewport (em-based, so large text or zoom counts):
+   compact until focused. One line of text, five 44px ink chips beside the
+   button, the seal line under them. Focus anywhere in the dock opens the
+   text to three lines and shows the count beside the seal line; the rows
+   below the button keep their height, so it stays put. */
+@media (width < 48rem), (height < 40em) {
   :root {
     --dock-h: 9.25rem;
   }
@@ -1463,6 +1462,41 @@ body.page-scroll {
   }
 }
 
+/* Short viewports (landscape phones, large text or 200% zoom): one row,
+   text, chips, button. The seal line and count come back while writing,
+   when focus is in the dock; the Change link follows the text in Tab
+   order, so it's shown by the time Tab reaches it. */
+@media (height < 40em) and (width >= 34em) {
+  :root {
+    --dock-h: 4.5rem;
+  }
+
+  .dock {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "error error error"
+      "well inks button"
+      "seal seal count";
+    padding-block: 0.5rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .dock-seal,
+  .dock .count {
+    display: none;
+  }
+
+  .dock:focus-within .dock-seal,
+  .dock:focus-within .count,
+  .dock .count--over {
+    display: block;
+  }
+
+  .dock:focus-within textarea {
+    min-height: 2.75rem;
+    max-height: 5.6rem;
+  }
+}
+
 /* Very narrow phones: the chips shrink their gap before anything else. */
 @media (width < 23rem) {
   .dock {
@@ -1515,6 +1549,19 @@ body.page-scroll {
 
   .ink-blot {
     display: none;
+  }
+}
+
+/* Forced colours: the chosen ink is otherwise marked only by its own
+   colour, which the system palette replaces. */
+@media (forced-colors: active) {
+  .swatch:has(input:checked) {
+    outline: 3px solid Highlight;
+    outline-offset: 1px;
+  }
+
+  .scroll-overview {
+    forced-color-adjust: none;
   }
 }
 

@@ -32,17 +32,76 @@ function ruleFor(selector: string): string | undefined {
   return undefined;
 }
 
-it("scroll.css sizes each length bucket: short narrowest, long (the base sheet) widest", () => {
-  const rem = (rule: string | undefined, name: string) => {
-    expect(rule, `expected a ${name} rule in scroll.css`).toBeTruthy();
-    const w = /(?:^|;)\s*width\s*:\s*clamp\(\s*([\d.]+)rem\s*,[^,]+,\s*([\d.]+)rem\s*\)/.exec(rule!);
-    expect(w, `${name} sets width: clamp(<min>rem, …, <max>rem)`).toBeTruthy();
-    expect(rule, `${name} sets contain-intrinsic-size`).toMatch(/contain-intrinsic-size\s*:/);
-    return [Number(w![1]), Number(w![2])] as const;
+// Sheet widths are fixed lengths held in custom properties on .handscroll,
+// not clamp() on vw: every sheet's box is known before it renders, which is
+// what keeps a scroll of thousands of lines smooth (prompt.md §8 T3).
+const rem = (name: string) => {
+  const m = new RegExp(`${name}\\s*:\\s*([\\d.]+)rem\\s*;`).exec(ruleFor(".handscroll") ?? "");
+  expect(m, `.handscroll sets ${name} in rem`).toBeTruthy();
+  return Number(m![1]);
+};
+
+it("scroll.css sizes each length bucket from its own fixed width: short < mid < long", () => {
+  const short = rem("--sheet-short");
+  const mid = rem("--sheet-mid");
+  const long = rem("--sheet-long");
+  expect(short).toBeLessThan(mid);
+  expect(mid).toBeLessThan(long);
+  const buckets: [string, string][] = [
+    [".scroll .colophon--short", "--sheet-short"],
+    [".scroll .colophon--mid", "--sheet-mid"],
+    [".scroll .colophon", "--sheet-long"],
+  ];
+  for (const [selector, prop] of buckets) {
+    const rule = ruleFor(selector);
+    expect(rule, `expected a ${selector} rule in scroll.css`).toBeTruthy();
+    expect(rule, `${selector} width`).toMatch(new RegExp(`(?:^|;)\\s*width\\s*:\\s*var\\(${prop}\\)`));
+    // The placeholder size an unrendered sheet reserves matches its width,
+    // or the scroll jumps as sheets render.
+    expect(rule, `${selector} placeholder`).toMatch(new RegExp(`contain-intrinsic-size\\s*:\\s*var\\(${prop}\\)`));
+  }
+  // A narrow screen may shrink the long sheet, but never below mid.
+  for (const m of scrollCss.matchAll(/--sheet-long\s*:\s*([\d.]+)rem/g)) expect(Number(m[1])).toBeGreaterThan(mid);
+});
+
+// Top-level rules of scroll.css with the @media condition they sit in, if
+// any (one level of nesting is all this stylesheet uses).
+function rulesWithMedia(): { media: string; selector: string; body: string }[] {
+  const out: { media: string; selector: string; body: string }[] = [];
+  let i = 0;
+  const css = scrollCss;
+  const block = (from: number): number => {
+    let depth = 0;
+    for (let j = from; j < css.length; j++) {
+      if (css[j] === "{") depth++;
+      else if (css[j] === "}" && --depth === 0) return j;
+    }
+    return css.length;
   };
-  const short = rem(ruleFor(".scroll .colophon--short"), ".colophon--short");
-  const mid = rem(ruleFor(".scroll .colophon--mid"), ".colophon--mid");
-  const long = rem(ruleFor(".scroll .colophon--long") ?? ruleFor(".scroll .colophon"), ".colophon--long / .colophon");
-  expect(short[1]).toBeLessThanOrEqual(mid[0]);
-  expect(mid[1]).toBeLessThanOrEqual(long[0]);
+  while (i < css.length) {
+    const open = css.indexOf("{", i);
+    if (open === -1) break;
+    const head = css.slice(i, open).trim();
+    const close = block(open);
+    const inner = css.slice(open + 1, close);
+    if (head.startsWith("@media")) {
+      for (const m of inner.matchAll(/([^{}]+)\{([^}]*)\}/g)) out.push({ media: head, selector: m[1]!.trim(), body: m[2]! });
+    } else {
+      out.push({ media: "", selector: head, body: inner });
+    }
+    i = close + 1;
+  }
+  return out;
+}
+
+// With JavaScript off, every sheet still skips rendering off screen: the
+// base rule says content-visibility: auto, and only scroll.js (which sets
+// data-windowed) swaps that for its own render window. Print shows all.
+it("with no script, every sheet keeps content-visibility: auto", () => {
+  expect(ruleFor(".scroll .colophon")).toMatch(/content-visibility\s*:\s*auto/);
+  const overrides = rulesWithMedia().filter((r) => /content-visibility\s*:\s*(?:hidden|visible)\b/.test(r.body));
+  expect(overrides.length).toBeGreaterThan(0);
+  for (const { media, selector } of overrides) {
+    expect(/\[data-windowed\]/.test(selector) || /\bprint\b/.test(media), `"${media} ${selector}"`).toBe(true);
+  }
 });

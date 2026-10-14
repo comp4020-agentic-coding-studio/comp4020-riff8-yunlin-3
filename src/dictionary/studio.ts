@@ -108,7 +108,7 @@ export const STUDIO = [
   e("牘", "dú", "writing tablet, letter", "correspondence, tablet, letter"),
   e("契", "qì", "contract, bond", "contract, deed, bond, agreement"),
   e("圖", "tú", "picture, chart", "picture, map, chart, diagram, plan"),
-  e("誌", "zhì", "record", "record, chronicle, journal, magazine"),
+  e("誌", "zhì", "record", "record, chronicle, journal"),
   e("跋", "bá", "colophon", "colophon, postscript, afterword"),
   e("序", "xù", "preface, order", "preface, foreword, order, sequence"),
   e("敘", "xù", "to narrate", "narrate, tell, recount, chat"),

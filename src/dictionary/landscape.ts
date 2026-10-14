@@ -74,7 +74,7 @@ export const LANDSCAPE = [
   // Batch 5: places, sky and colour, time words, plants and creatures, trades.
   e("漠", "mò", "desert", "desert, sandy waste"),
   e("嶼", "yǔ", "islet", "islet, small island"),
-  e("磯", "jī", "rocky shore", "rocky shore, breakwater, rock"),
+  e("磯", "jī", "rocky shore", "rocky shore, rock"),
   e("澗", "jiàn", "ravine stream", "ravine stream, brook, rill"),
   e("瀨", "lài", "rapids", "rapids, riffle"),
   e("汀", "tīng", "sandbank", "sandbank, shoal, spit"),
@@ -97,7 +97,7 @@ export const LANDSCAPE = [
   e("郊", "jiāo", "outskirts", "suburb, suburbs, outskirts"),
   e("境", "jìng", "realm, border", "realm, border, boundary, territory"),
   e("方", "fāng", "square, direction", "square, direction, region, way"),
-  e("東", "dōng", "east", "east, eastern, orient"),
+  e("東", "dōng", "east", "east, eastern"),
   e("西", "xī", "west", "west, western"),
   e("南", "nán", "south", "south, southern"),
   e("北", "běi", "north", "north, northern"),

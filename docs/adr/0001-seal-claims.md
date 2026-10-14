@@ -4,6 +4,10 @@
 
 Accepted, crit 9 ("All at once").
 
+The dictionary has since grown from about 140 seals to about eight hundred
+(crit 10), which eases the scarcity cost below without changing the
+decision.
+
 ## Context
 
 Until now a visitor's seal was one of twelve characters hashed from their

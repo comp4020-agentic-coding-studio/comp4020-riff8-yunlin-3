@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { readdirSync, readFile, readFileSync } from "node:fs";
 import { extname } from "node:path";
+import { gzipSync } from "node:zlib";
 import { addColophon, claimedGlyphs, claimOf, claimSeal, listColophons, releaseSeal } from "./db.ts";
 import { sealToken } from "./cookies.ts";
 import {
@@ -89,6 +90,39 @@ async function readBody(req: import("node:http").IncomingMessage): Promise<strin
   return tooLarge ? undefined : Buffer.concat(chunks).toString("utf8");
 }
 
+// Pages and static text are sent gzipped when the client accepts it: the
+// scroll page is over a megabyte of HTML at a couple of thousand rows and a
+// few tens of kB compressed, which matters on a phone. Never used for the
+// event stream, redirects or empty bodies.
+const GZIP_TYPES = new Set([".css", ".js", ".svg"]);
+function acceptsGzip(req: import("node:http").IncomingMessage): boolean {
+  const header = req.headers["accept-encoding"] ?? "";
+  return /(^|,)\s*gzip\s*(,|;(?!\s*q=0(\.0*)?\s*(,|$))|$)/i.test(header);
+}
+
+function send(
+  req: import("node:http").IncomingMessage,
+  res: import("node:http").ServerResponse,
+  status: number,
+  type: string,
+  body: string | Buffer,
+  compress = true,
+): void {
+  const headers: Record<string, string> = { "Content-Type": type };
+  let payload: string | Buffer = body;
+  if (compress) {
+    headers["Vary"] = "Accept-Encoding";
+    if (acceptsGzip(req)) {
+      payload = gzipSync(body);
+      headers["Content-Encoding"] = "gzip";
+    }
+  }
+  res.writeHead(status, headers);
+  res.end(payload);
+}
+
+const HTML = "text/html; charset=utf-8";
+
 const FORM_ERRORS = new Set(["empty", "long", "ink"]);
 
 // The route a failed request was for, named only if it's one this server
@@ -120,8 +154,7 @@ async function handle(req: import("node:http").IncomingMessage, res: import("nod
     // to an object property rather than a message.
     const raw = url.searchParams.get("error");
     const error = raw !== null && FORM_ERRORS.has(raw) ? raw : undefined;
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(renderIndex(listColophons(), token, error));
+    send(req, res, 200, HTML, renderIndex(listColophons(), token, error));
     return;
   }
 
@@ -157,8 +190,7 @@ async function handle(req: import("node:http").IncomingMessage, res: import("nod
         // with the page itself, the text back in the box (escaped by
         // renderIndex) and their ink still chosen, so they can fix and resend.
         const draft = { body: (params.get("body") ?? "").slice(0, 2000), ink: ink ?? DEFAULT_INK };
-        res.writeHead(422, { "Content-Type": "text/html; charset=utf-8" });
-        res.end(renderIndex(listColophons(), token, error, draft));
+        send(req, res, 422, HTML, renderIndex(listColophons(), token, error, draft));
       }
       return;
     }
@@ -201,8 +233,11 @@ async function handle(req: import("node:http").IncomingMessage, res: import("nod
     // others that share the wanted seal's first word.
     const query = (url.searchParams.get("q") || (err === "taken" ? wanted?.words[0] : "") || "").slice(0, 40);
     const claimedParam = url.searchParams.get("claimed") ?? undefined;
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(
+    send(
+      req,
+      res,
+      200,
+      HTML,
       renderSealChooser({
         query,
         results: searchSeals(query),
@@ -257,8 +292,11 @@ async function handle(req: import("node:http").IncomingMessage, res: import("nod
   const adr = req.method === "GET" ? /^\/adr\/([a-z0-9-]+)\/$/.exec(url.pathname) : null;
   const record = adr ? ADRS.get(adr[1]!) : undefined;
   if (adr && record) {
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(
+    send(
+      req,
+      res,
+      200,
+      HTML,
       renderReadme(
         renderMarkdown(record.markdown),
         `ADR ${record.number} — Colophon`,
@@ -269,8 +307,7 @@ async function handle(req: import("node:http").IncomingMessage, res: import("nod
   }
 
   if (req.method === "GET" && url.pathname === "/readme/") {
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(renderReadme(renderMarkdown(README)));
+    send(req, res, 200, HTML, renderReadme(renderMarkdown(README)));
     return;
   }
 
@@ -288,8 +325,7 @@ async function handle(req: import("node:http").IncomingMessage, res: import("nod
         res.end("not found");
         return;
       }
-      res.writeHead(200, { "Content-Type": type });
-      res.end(data);
+      send(req, res, 200, type, data, GZIP_TYPES.has(ext));
     });
     return;
   }

@@ -42,10 +42,11 @@ A visitor signs with a seal. If they never think about it, their browser is
 given one of twelve collectors' characters at random. If they want to, they
 can [choose one by meaning](/seal): type an English word ("keep",
 "mountain", "remember") and pick from the characters in a curated
-dictionary that mean it. The dictionary holds about eight hundred
+dictionary that mean it. The dictionary holds nearly nine hundred
 characters in nine themes, from the studio and states of mind to
-landscape, weather, the seasons, living things, kin and the crafts, and
-its search is forgiving: capitals don't matter, "mountains" and "keeping"
+landscape, weather, the seasons, living things, kin and the crafts; the
+seal page lets you browse each theme a page at a time with plain links,
+no script needed. Its search is forgiving: capitals don't matter, "mountains" and "keeping"
 find what "mountain" and "keep" do, and a word that only appears in a
 seal's gloss still finds it, ranked after the closer matches. Tap any seal
 on the scroll to read what it means. They also choose the ink they write
@@ -84,9 +85,17 @@ left, the way a Chinese handscroll does. A handscroll grows at its end ---
 colophons were appended after the painting, sheet by sheet, for centuries
 --- so the newest line sits at the left end, where the scroll is still
 growing, and you scroll right to read back in time. The English itself
-stays horizontal; only the order of the sheets follows the scroll. It opens
-at the newest line with no script at all, because the list is laid out in
-reverse by CSS rather than turned there by JavaScript.
+stays horizontal; only the order of the sheets follows the scroll. The list
+is newest first in the page itself, so the screen, the keyboard, a screen
+reader and a browser with no script all start at the newest line and move
+back in time together. A "Skip past the scroll" link lets a keyboard reader
+jump over it to what follows.
+
+Each sheet is sized by its line, the way real colophons were: a short note
+takes a narrow strip, a long one a wide passage. The size is worked out
+from the line's length when the page is drawn, not stored. Each sheet's
+date is a link to that line (`/#c-<id>`), so a line can be shared; opening
+one glides the scroll to it and rings it briefly in gilt.
 
 The watercolour that used to stand above the margin is gone from the
 middle of the page; it survives only as a faint wash behind the title.
@@ -113,9 +122,13 @@ in. With reduced motion asked for, every move is instant. Under the scroll
 a thin strip shows where you are along its whole length and which lines
 you're looking at, and your own lines appear on it as small red ticks ---
 the same red, the same meaning. A screen reader hears a new line arrive
-through one quiet status line ("A new line on the scroll, signed 山"), a
-burst of them as a single count, and its own line confirmed; it never
-hears who else is reading.
+through one quiet status line: someone else's line is read as its seal
+and a short excerpt, or the seal alone while you're writing, so your own
+words aren't talked over; a burst of lines is a single count, and your own
+line is confirmed when it's in. It never hears who else is reading.
+
+Pages and text files are sent gzipped to any browser that asks, which
+keeps a long scroll quick to arrive on a slow connection.
 
 As you type, your line inks itself in, character by character, in the ink
 you chose; a deleted character blots out where it stood. Nothing you type
@@ -131,8 +144,8 @@ reads and writes the same, just without the weather.
 
 The seal dictionary is still only ever a dictionary: nothing outside it can
 become a seal and nothing typed is transliterated. It was written without a
-Chinese reader to check it, and says so at the top of the file; at eight
-hundred rows that review matters more, not less, before it's trusted.
+Chinese reader to check it, and says so at the top of the file; at nearly
+nine hundred rows that review matters more, not less, before it's trusted.
 
 ## What I chose not to build
 

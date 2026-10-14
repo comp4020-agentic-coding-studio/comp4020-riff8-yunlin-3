@@ -41,7 +41,8 @@ edited or deleted, signed with a seal they choose by meaning from a curated
 English/Chinese dictionary and written in an ink from a fixed palette.
 Confirmed notes appear on every open session within about a second. The
 notes are the scroll: a silk-mounted handscroll read right to left, newest
-at the left end, one sheet per line, with a fixed writing dock, an overview
+at the left end and first in the page, one sheet per line sized by its
+length, with a fixed writing dock, an overview
 strip, ink-in typing, a lantern launch and a fan opening. Small, quiet,
 finished; not a platform.
 
@@ -98,8 +99,9 @@ Plain `node:http` server run directly from `.ts` (Node 24 strips types),
   `--lantern-paper` `#f6e6c4` the lantern body; every ink meets 4.5:1 on
   both (`spec/ink-palette.test.ts`)
 - `--dock-h` the dock's collapsed height, set per breakpoint in CSS and
-  refined by `app.js`; the page's bottom padding and `scroll-padding` come
-  from it
+  refined by `app.js`; `--dock-room` the dock's real, possibly expanded
+  height, set by `app.js`. The page's bottom padding and `scroll-padding`
+  use `--dock-room`, falling back to `--dock-h` with no script
 - scenery, from the painting, never a visitor's text and never "yours":
   `--spruce`, `--moss`, `--granite`, `--clay`, `--sky`, mount silk `--silk`
   / `--silk-dark`, `--gilt` edge, roller woods `--wood*`
@@ -165,8 +167,13 @@ what has to change first, in the same commit.
 - Never leave keyboard focus on an element you're about to disable or
   remove; after a submit, focus stays in the textarea.
 - Anything fixed over the page leaves room for itself: body padding and
-  `scroll-padding` come from `--dock-h`, so the dock never covers focused
-  content.
+  `scroll-padding` come from `--dock-room` (falling back to `--dock-h`), so
+  the dock never covers focused content.
+- A keyboard path through the scroll follows reading order: the list is
+  newest first in the DOM, matching the screen. Never reorder it with CSS
+  alone.
+- Every value from the URL that reaches a page (`theme`, `page`, `error`) is
+  validated against a fixed list before use and never echoed.
 - Every async request handler sits inside the one error boundary in
   `src/server.ts`; a half-sent body must never take the process down.
 - The log names visitors only as `who=<glyph>#<tag>`, through `src/log.ts`:

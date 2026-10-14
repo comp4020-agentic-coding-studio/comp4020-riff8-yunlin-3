@@ -4,9 +4,8 @@
 
 Accepted, crit 9 ("All at once").
 
-The dictionary has since grown from about 140 seals to about eight hundred
-(crit 10), which eases the scarcity cost below without changing the
-decision.
+The dictionary has since grown from about 140 seals to 885 (crit 10),
+which eases the scarcity cost below without changing the decision.
 
 ## Context
 

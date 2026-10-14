@@ -148,11 +148,12 @@ export interface Draft {
 const countFmt = new Intl.NumberFormat("en-AU");
 
 // The strip under the scroll and its cue; scroll.js draws the window and
-// rewrites the cue to the lines in view. Nothing to show on an empty scroll.
+// rewrites the cue to the lines in view. On an empty scroll both render
+// hidden, and scroll.js reveals them when the first line arrives.
 function overview(count: number): string {
-  if (count === 0) return "";
-  return `<div class="scroll-overview" aria-hidden="true"><div class="scroll-overview-window"></div></div>
-          <p class="scroll-cue">${countFmt.format(count)} ${count === 1 ? "line" : "lines"} · newest at the left</p>`;
+  const hidden = count === 0 ? " hidden" : "";
+  return `<div class="scroll-overview" aria-hidden="true"${hidden}><div class="scroll-overview-window"></div></div>
+          <p class="scroll-cue"${hidden}>${countFmt.format(count)} ${count === 1 ? "line" : "lines"} · newest at the left</p>`;
 }
 
 export function renderIndex(colophons: Colophon[], ownToken: string, error?: string, draft?: Draft): string {

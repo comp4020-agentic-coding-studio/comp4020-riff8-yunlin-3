@@ -24,6 +24,12 @@ the same commit as the work.
 
 ## Done
 
+- [x] P1 L5: your own line glides into view even when you were reading
+  elsewhere; Back after a date link restores where you were; permalinks
+  don't push the page down; seal results as a card grid with #results
+  paging; pages never cached; lanterns stay above the dock (c427bdb). ux:
+  six of seven L4 findings proven fixed
+
 - [x] P1 L4: the list is newest first in the page itself (`ol reversed`),
   so keyboard, screen reader and no-JS reading all start at the newest
   line; "Skip past the scroll" link; README and CLAUDE.md caught up (bcea551).

@@ -217,7 +217,7 @@
   const cue = document.querySelector(".scroll-cue");
   const list = scroller.querySelector(".colophon-list");
   const fmt = new Intl.NumberFormat("en-AU");
-  const geo = { count: 0, stride: 1, newestLeft: 0, scrollWidth: 1, clientWidth: 1, stripWidth: 0, winWidth: 0 };
+  const geo = { mine: 0, count: 0, stride: 1, newestLeft: 0, scrollWidth: 1, clientWidth: 1, stripWidth: 0, winWidth: 0 };
   let cueText = "";
   let painting = 0;
 
@@ -236,7 +236,7 @@
       const hi = geo.count - first;
       const lo = geo.count - last;
       const range = hi === lo ? `Line ${fmt.format(hi)}` : `Lines ${fmt.format(lo)}–${fmt.format(hi)}`;
-      const text = `${range} of ${fmt.format(geo.count)} · newest at the left`;
+      const text = `${range} of ${fmt.format(geo.count)} · newest at the left${geo.mine ? " · yours in red" : ""}`;
       if (text !== cueText) {
         cue.textContent = text;
         cueText = text;
@@ -259,13 +259,34 @@
       geo.stripWidth = strip.clientWidth;
       win.style.width = `${((geo.clientWidth / geo.scrollWidth) * 100).toFixed(3)}%`;
       geo.winWidth = win.offsetWidth;
-      const ticks = [];
+      // Own lines as ticks. Lines closer than MERGE_PX on the strip share
+      // one tick spanning them, so a run of lines reads as a run, not a blur.
+      const MERGE_PX = 4;
+      const xs = [];
       for (const li of scroller.querySelectorAll(".colophon--mine")) {
+        xs.push(((li.offsetLeft + li.offsetWidth / 2) / geo.scrollWidth) * geo.stripWidth);
+      }
+      geo.mine = xs.length;
+      xs.sort((a, b) => a - b);
+      const runs = [];
+      for (const x of xs) {
+        const run = runs[runs.length - 1];
+        if (run && x - run[1] < MERGE_PX) {
+          run[1] = x;
+          run[2]++;
+        } else runs.push([x, x, 1]);
+      }
+      // A run is 2px for one line, a pixel wider per extra line up to 8px,
+      // centred on its lines and kept inside the strip's gilt edge.
+      const ticks = runs.map(([a, b, n]) => {
+        const w = Math.max(b - a + 2, Math.min(2 + (n - 1), 8));
+        const left = Math.max(1, Math.min(geo.stripWidth - w - 1, (a + b) / 2 - w / 2));
         const tick = document.createElement("span");
         tick.className = "scroll-overview-tick";
-        tick.style.left = `${(((li.offsetLeft + li.offsetWidth / 2) / geo.scrollWidth) * 100).toFixed(3)}%`;
-        ticks.push(tick);
-      }
+        tick.style.left = `${left.toFixed(1)}px`;
+        tick.style.width = `${w.toFixed(1)}px`;
+        return tick;
+      });
       for (const old of strip.querySelectorAll(".scroll-overview-tick")) old.remove();
       strip.append(...ticks);
     }
@@ -294,6 +315,7 @@
   layout();
 
   if (strip) {
+    strip.title = "Jump along the scroll";
     // Click or drag: centre the view on the pointer. Primary button only;
     // the gesture belongs to one pointer and ends however that pointer ends.
     let dragging = null;

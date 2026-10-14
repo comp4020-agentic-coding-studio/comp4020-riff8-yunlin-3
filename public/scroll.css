@@ -207,7 +207,6 @@
   position: relative;
   height: 1.1rem;
   margin: 0.55rem 1.6rem 0;
-  overflow: hidden;
   cursor: pointer;
   touch-action: none;
   background: var(--paper);
@@ -227,13 +226,25 @@
   will-change: transform;
 }
 
-/* One tick per line of the visitor's own: red still means only "yours". */
+/* The strip draws 1.1rem tall but takes taps over 44px: an invisible pad
+   above and below. Window and ticks stay inside the drawn strip (scroll.js
+   clamps the window), so nothing else needs the strip to clip. */
+.scroll-overview::before {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto;
+  height: max(100%, 2.75rem);
+  transform: translateY(-50%);
+}
+
+/* The visitor's own lines (runs merged by scroll.js), drawn above the
+   window: red still means only "yours". */
 .scroll-overview-tick {
   position: absolute;
+  z-index: 1;
   top: 0.15rem;
   bottom: 0.15rem;
-  width: 2px;
-  margin-left: -1px;
+  min-width: 2px;
   pointer-events: none;
   background: var(--seal);
 }

@@ -145,6 +145,16 @@ export interface Draft {
   ink: string;
 }
 
+const countFmt = new Intl.NumberFormat("en-AU");
+
+// The strip under the scroll and its cue; scroll.js draws the window and
+// rewrites the cue to the lines in view. Nothing to show on an empty scroll.
+function overview(count: number): string {
+  if (count === 0) return "";
+  return `<div class="scroll-overview" aria-hidden="true"><div class="scroll-overview-window"></div></div>
+          <p class="scroll-cue">${countFmt.format(count)} ${count === 1 ? "line" : "lines"} · newest at the left</p>`;
+}
+
 export function renderIndex(colophons: Colophon[], ownToken: string, error?: string, draft?: Draft): string {
   const message = errorMessage(error);
   const own = currentSeal(ownToken, claimOf(ownToken));
@@ -153,7 +163,7 @@ export function renderIndex(colophons: Colophon[], ownToken: string, error?: str
   const body = `
       ${header("a shared margin on one painting", false, true)}
       <main id="main">
-        <section class="scroll-section" aria-labelledby="colophons-heading">
+        <section class="scroll-section">
           <h2 id="colophons-heading" class="visually-hidden">Colophons</h2>
           <div class="handscroll">
             <div class="handscroll-roller handscroll-roller--start" aria-hidden="true"></div>
@@ -165,8 +175,10 @@ export function renderIndex(colophons: Colophon[], ownToken: string, error?: str
             </div>
             <div class="handscroll-roller handscroll-roller--end" aria-hidden="true"></div>
           </div>
+          ${overview(colophons.length)}
           <p class="section-note">Newest at the left; scroll right to read back in time. Nothing written here can be taken back. Tap a seal for its meaning.</p>
           ${legend(colophons)}
+          <p class="visually-hidden" role="status" aria-live="polite" id="scroll-status"></p>
         </section>
         <figure class="tradition">
           <img src="/public/scroll.avif" alt="" />
@@ -200,7 +212,7 @@ function dock(own: Seal, message: string | undefined, draft: Draft | undefined):
       <form method="post" action="/colophons" class="write-form" data-own-seal="${own.entry.glyph}">
         <label for="body" class="visually-hidden">A line for the margin</label>
         <div class="inkwell">
-          <textarea id="body" name="body" maxlength="${MAX_BODY_LENGTH}" rows="2" required
+          <textarea id="body" name="body" maxlength="${MAX_BODY_LENGTH}" rows="2" required${message ? " autofocus" : ""}
             placeholder="A line for the margin…"
             aria-describedby="body-count${message ? " form-error" : ""}">${draft?.body ? `\n${escapeHtml(draft.body)}` : ""}</textarea>
         </div>
@@ -290,7 +302,7 @@ export function renderSealChooser(page: SealPage): string {
             own.chosen
               ? `<form method="post" action="/seal" class="release-form">
             <input type="hidden" name="glyph" value="" />
-            <button type="submit">Give up <span lang="zh-Hant">${own.entry.glyph}</span></button>
+            <button type="submit" class="button-quiet">Give up <span lang="zh-Hant">${own.entry.glyph}</span></button>
           </form>`
               : ""
           }

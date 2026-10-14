@@ -77,6 +77,10 @@
 
 html {
   background: #dcd7ca;
+
+  /* Anything scrolled into view (focus, a #fragment) lands clear of the
+     fixed dock. */
+  scroll-padding-bottom: calc(var(--dock-room, var(--dock-h)) + var(--dock-safe) + 1rem);
 }
 
 /* The wall the scroll hangs on: quiet plaster, so the silk reads as cloth. */
@@ -87,6 +91,10 @@ body {
   line-height: 1.55;
   background: radial-gradient(ellipse at 50% 30%, #e4e0d4, #d3cdbe);
   background-attachment: fixed;
+
+  /* The wall runs to the bottom of the window on short pages too. */
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 a {
@@ -520,6 +528,11 @@ textarea {
   color: var(--entry-ink);
 }
 
+textarea::placeholder {
+  color: var(--ink-soft);
+  opacity: 1;
+}
+
 .inkwell-mirror {
   position: absolute;
   inset: 0;
@@ -638,8 +651,30 @@ button {
   cursor: pointer;
 }
 
+/* A secondary action, quieter than the primary: giving up a seal. */
+.button-quiet {
+  border-color: var(--ink-soft);
+  background: transparent;
+  color: var(--ink);
+}
+
+.button-quiet:hover {
+  background: var(--paper-shade);
+  color: var(--ink);
+}
+
+button[aria-disabled="true"] {
+  cursor: progress;
+  opacity: 0.75;
+}
+
 button:hover {
   background: #46403a;
+}
+
+.count--over {
+  color: var(--ink);
+  font-weight: bold;
 }
 
 .form-error {
@@ -996,6 +1031,12 @@ footer {
     margin-inline: 0.5rem;
   }
 
+  /* On a first phone screen the scroll and its cue fill the room above the
+     dock; the note starts below the fold rather than being sliced by it. */
+  .page-scroll .section-note {
+    margin-top: 3rem;
+  }
+
   .tradition img {
     height: 5.5rem;
   }
@@ -1006,7 +1047,7 @@ footer {
    silk; the body is padded by --dock-h so nothing stays covered. Grows
    upward only, so the button never moves under a finger mid-tap. */
 body.page-scroll {
-  padding-bottom: calc(var(--dock-h) + var(--dock-safe) + 0.75rem);
+  padding-bottom: calc(var(--dock-room, var(--dock-h)) + var(--dock-safe) + 0.75rem);
 }
 
 .dock {
@@ -1213,7 +1254,8 @@ body.page-scroll {
     font-size: 0.8rem;
   }
 
-  .dock:focus-within .count {
+  .dock:focus-within .count,
+  .dock .count--over {
     display: block;
   }
 

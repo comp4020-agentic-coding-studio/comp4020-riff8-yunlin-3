@@ -56,6 +56,37 @@
     return li;
   }
 
+  // What a screen reader hears when the scroll changes: arrivals only, never
+  // who is reading. Someone else's lines are gathered for a moment, so a
+  // burst (a reconnect replay) is one count, not a flood. Text only ever
+  // goes in through textContent, taken from the server-rendered entry.
+  const status = document.getElementById("scroll-status");
+  const BURST_MS = 900;
+  let heard = { count: 0, glyph: "", timer: 0 };
+
+  function say(message) {
+    if (!status) return;
+    // Cleared first, so the same sentence twice is still announced twice.
+    status.textContent = "";
+    setTimeout(() => (status.textContent = message), 60);
+  }
+
+  function sealGlyph(li) {
+    const label = li.querySelector(".colophon-seal summary")?.getAttribute("aria-label") ?? "";
+    return /^Seal (\S+?),/.exec(label)?.[1] ?? "";
+  }
+
+  function announceOther(li) {
+    heard.count++;
+    heard.glyph = sealGlyph(li);
+    if (heard.timer) return;
+    heard.timer = setTimeout(() => {
+      const { count, glyph } = heard;
+      heard = { count: 0, glyph: "", timer: 0 };
+      say(count > 1 ? `${count} new lines on the scroll.` : `A new line on the scroll${glyph ? `, signed ${glyph}` : ""}.`);
+    }, BURST_MS);
+  }
+
   const canFly = () => sky && !reducedMotion() && sky.childElementCount < MAX_LANTERNS;
 
   // A paper lantern: static markup only. The line and the seal go in
@@ -115,6 +146,7 @@
     }
     if (reserved.has(data.id)) return;
     const li = arrive(data);
+    if (li) announceOther(li);
     // Someone else's line landed: one small, faint lantern, carrying nothing.
     if (li && canFly()) {
       launchLantern({ x: window.innerWidth * (0.15 + Math.random() * 0.7), y: window.innerHeight + 40 }, { faint: true });
@@ -135,11 +167,14 @@
     const root = document.documentElement;
     if (typeof ResizeObserver === "function") {
       new ResizeObserver(() => {
-        // The collapsed height only: a focused dock grows over the page for
-        // as long as the visitor is writing, rather than reflowing the
-        // scroll under them.
-        if (dockEl.matches(":focus-within")) return;
-        root.style.setProperty("--dock-h", `${dockEl.offsetHeight}px`);
+        const h = dockEl.offsetHeight;
+        // The page's bottom room follows the dock's real height, expanded
+        // too, so nothing at the end of the page is ever unreachable; it only
+        // adds space below the last content, so nothing above moves.
+        root.style.setProperty("--dock-room", `${h}px`);
+        // --dock-h stays the collapsed height: a focused dock grows over the
+        // scroll for as long as the visitor is writing, rather than resizing it.
+        if (!dockEl.matches(":focus-within")) root.style.setProperty("--dock-h", `${h}px`);
       }).observe(dockEl);
     }
     const vv = window.visualViewport;
@@ -218,7 +253,10 @@
       mirror.scrollTop = textarea.scrollTop;
       if (count) {
         const left = max - textarea.value.length;
-        count.textContent = `${left} of ${max} characters left.`;
+        count.textContent =
+          left >= 0 ? `${left} of ${max} characters left.` : `${-left} ${left === -1 ? "character" : "characters"} over.`;
+        // Over the limit, the count stays visible even with the dock collapsed.
+        count.classList.toggle("count--over", left < 0);
       }
     }
 
@@ -259,8 +297,19 @@
       textarea.setAttribute("aria-describedby", ids.join(" "));
     }
 
+    // Back in the text, next to the error: on a phone that also opens the
+    // dock again, so the whole line and the count are in view.
+    function rejected(message) {
+      showError(message);
+      textarea.focus({ preventScroll: true });
+    }
+
     function accepted(data) {
       clearError();
+      say("Your line is written in.");
+      if (document.activeElement === button || document.activeElement === document.body) {
+        textarea.focus({ preventScroll: true });
+      }
       const line = textarea.value;
       const inkKey = form.querySelector("input[name=ink]:checked")?.value;
       const ink = `ink--${inkKey ?? "mo-lan"}`;
@@ -287,7 +336,9 @@
       event.preventDefault();
       if (inFlight) return;
       inFlight = true;
-      button.disabled = true;
+      // Not disabled: a disabled button drops keyboard focus to <body>.
+      // inFlight is the real guard.
+      button.setAttribute("aria-disabled", "true");
       try {
         const res = await fetch(form.action, {
           method: "POST",
@@ -298,17 +349,17 @@
         if (res.status === 201) {
           accepted(await res.json());
         } else if (res.status === 422) {
-          showError((await res.json()).message);
+          rejected((await res.json()).message);
         } else if (res.status === 413) {
-          showError(`Keep it to ${max} characters — the margin is not infinite.`);
+          rejected(`Keep it to ${max} characters — the margin is not infinite.`);
         } else {
-          showError("Something went wrong and nothing was written. Your line is still here; try again.");
+          rejected("Something went wrong and nothing was written. Your line is still here; try again.");
         }
       } catch {
-        showError("Couldn't reach the scroll, so nothing was written. Your line is still here; try again.");
+        rejected("Couldn't reach the scroll, so nothing was written. Your line is still here; try again.");
       } finally {
         inFlight = false;
-        button.disabled = false;
+        button.removeAttribute("aria-disabled");
         for (const data of queued.splice(0)) onLive(data);
       }
     });

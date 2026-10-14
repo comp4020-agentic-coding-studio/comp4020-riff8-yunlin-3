@@ -62,6 +62,13 @@ no list of who else is here. A page that loses its connection catches up on
 exactly what it missed when it reconnects. The same ADR records why drafts
 stay private and what that quiet costs.
 
+The server logs one line per action, naming each visitor by the seal they
+sign with and a short one-way tag of their browser's token, so whoever
+reads `flyctl logs` can tell two people apart without learning who either
+is. Open pages appear only as a count, never by who is reading. No token,
+cookie or colophon body ever reaches the log;
+[ADR 0002](/adr/0002-who-did-what/) records the format and what it costs.
+
 ## How it looks
 
 The page is a hanging scroll: wooden rollers top and bottom, moss-green silk

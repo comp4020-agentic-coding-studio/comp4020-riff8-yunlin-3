@@ -46,7 +46,10 @@ event=error path=/colophons code=ECONNRESET
 The glyph changes when someone claims a seal (校 becomes 山 above) and the
 tag doesn't, so the narrator can follow one browser through a change of
 seal, and tell 觀#3d7708's refused claim of 山 from the claim that took it.
-`seal.released` is written only when a seal was actually held.
+`seal.released` is written only when a seal was actually held. So a
+narrator reads the tag as the person and the glyph as the signature they
+use right now: once one visitor gives up a seal and another takes it, the
+same glyph appears with two different tags minutes apart.
 
 Page streams carry no `who`, only a count (`src/live.ts`). Opening a page is
 reading, not acting, and a log of who is reading is exactly the list of

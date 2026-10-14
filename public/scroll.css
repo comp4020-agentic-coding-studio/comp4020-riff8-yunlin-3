@@ -7,16 +7,17 @@
    public/scroll.js only enhances: eased wheel, keys, jumps, and keeping a
    reader's place when a line arrives.
 
-   Band height: fixed, never from content. It fills the room between the
-   header and the dock (--band-avail, measured by scroll.js; a CSS estimate
-   otherwise), between 18rem and 30rem: blank paper below a short line is
-   the point. A 320-character line plus its foot needs about 25rem; where
-   the band is shorter than that, the body scrolls vertically inside its
-   own sheet rather than being clipped. A fixed height keeps the row's layout independent of
-   content-visibility's placeholders, so nothing jumps as sheets render. */
+   Band height follows the content, between 18rem and the room between the
+   header and the dock (--band-cap: --band-avail measured by scroll.js, a
+   CSS estimate otherwise, never over 30rem). Sheets are as wide as their
+   line needs (short, mid, long: render.ts buckets them). An off-screen
+   long sheet's placeholder is as tall as the cap, so any scroll holding a
+   long line sits at the cap and the band never changes height mid-scroll
+   as sheets render; a scroll of short lines stays short. Where a body is
+   taller than its sheet, it scrolls inside the sheet, never clipped. */
 
 .handscroll {
-  --band-h: clamp(18rem, var(--band-avail, calc(100dvh - 10rem - var(--dock-h, 7rem))), 30rem);
+  --band-cap: clamp(18rem, var(--band-avail, calc(100dvh - 10rem - var(--dock-h, 7rem))), 30rem);
 
   position: relative;
   display: flex;
@@ -84,7 +85,6 @@
   position: relative;
   flex: 1 1 auto;
   min-width: 0;
-  height: var(--band-h);
   overflow: auto hidden;
   overscroll-behavior-x: contain;
   scroll-behavior: auto;
@@ -109,7 +109,8 @@
   justify-content: flex-start;
   width: max-content;
   min-width: 100%;
-  height: 100%;
+  min-height: 18rem;
+  max-height: var(--band-cap);
   margin: 0;
   padding: 0 0.6rem;
   list-style: none;
@@ -124,6 +125,7 @@
   flex-direction: column;
   gap: 0.6rem;
   width: clamp(15rem, 72vw, 18rem);
+  max-height: var(--band-cap);
   padding: 1.3rem 1.2rem 1rem;
   border: 0;
   border-left: 1px solid rgb(185 160 106 / 28%);
@@ -135,7 +137,24 @@
     repeating-linear-gradient(0deg, rgb(235 227 211 / 60%) 0 1px, transparent 1px 0.35rem),
     repeating-linear-gradient(90deg, rgb(235 227 211 / 45%) 0 1px, transparent 1px 0.3rem);
   content-visibility: auto;
-  contain-intrinsic-size: auto 18rem auto 22rem;
+  contain-intrinsic-size: auto 18rem auto 30rem;
+}
+
+/* Width by length, so a one-line note isn't a column of empty paper and a
+   phone shows two short ones at once. Placeholder sizes match. */
+.scroll .colophon--short {
+  width: clamp(8rem, 42vw, 10rem);
+  contain-intrinsic-size: auto 10rem auto 12rem;
+}
+
+.scroll .colophon--mid {
+  width: clamp(12rem, 60vw, 14rem);
+  contain-intrinsic-size: auto 14rem auto 18rem;
+}
+
+.scroll .colophon--short .colophon-body {
+  font-size: 1.25em;
+  line-height: 1.4;
 }
 
 .scroll .colophon:last-child {

@@ -30,7 +30,36 @@
 
   const maxLeft = () => scroller.scrollWidth - scroller.clientWidth;
   const clamp = (x) => Math.max(0, Math.min(maxLeft(), x));
-  const sheetWidth = () => scroller.querySelector(".colophon")?.offsetWidth || 288;
+  // Each sheet's own left and right edge in scroll coordinates, newest
+  // first (visual order; the DOM is oldest first). Sheets differ in width
+  // (short, mid, long), so nothing assumes one sheet width. Read once per
+  // layout change by layout() below, never per scroll frame.
+  let starts = new Float64Array(0);
+  let ends = new Float64Array(0);
+  let mids = new Float64Array(0);
+  // First index whose value is > x (values ascending).
+  const above = (arr, x) => {
+    let lo = 0;
+    let hi = arr.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (arr[mid] > x) hi = mid;
+      else lo = mid + 1;
+    }
+    return lo;
+  };
+  // The next sheet edge beyond x in either direction, for arrow keys.
+  const nextEdge = (x, dir) => {
+    if (!starts.length) return x + dir * 288;
+    // Edges within the list's own padding of x count as "here".
+    const slack = (starts[0] ?? 0) + 2;
+    if (dir > 0) {
+      const i = above(starts, x + slack);
+      return i < starts.length ? starts[i] : maxLeft();
+    }
+    const i = above(starts, x - slack) - 1;
+    return i > 0 ? starts[i] : 0;
+  };
 
   // One animator for wheel, keys and jumps: an exponential glide toward a
   // target that further input can keep moving. pos is kept as a float so
@@ -116,8 +145,8 @@
     if (event.target.closest?.("input, textarea, select, button, [contenteditable]")) return;
     const page = scroller.clientWidth * 0.85;
     const moves = {
-      ArrowRight: () => moveBy(sheetWidth()),
-      ArrowLeft: () => moveBy(-sheetWidth()),
+      ArrowRight: () => moveTo(nextEdge(frame ? target : scroller.scrollLeft, 1)),
+      ArrowLeft: () => moveTo(nextEdge(frame ? target : scroller.scrollLeft, -1)),
       PageDown: () => moveBy(page),
       PageUp: () => moveBy(-page),
       Home: () => moveTo(0),
@@ -129,7 +158,8 @@
     move();
   });
 
-  const atNewest = () => scroller.scrollLeft <= sheetWidth();
+  // At the newest end: the newest sheet still at least partly in view.
+  const atNewest = () => scroller.scrollLeft <= (ends.length ? ends[0] : 288);
 
   const beforeArrive = () => ({
     atNewest: atNewest(),
@@ -220,7 +250,7 @@
   const cue = document.querySelector(".scroll-cue");
   const list = scroller.querySelector(".colophon-list");
   const fmt = new Intl.NumberFormat("en-AU");
-  const geo = { mine: 0, count: 0, stride: 1, newestLeft: 0, scrollWidth: 1, clientWidth: 1, stripWidth: 0, winWidth: 0 };
+  const geo = { mine: 0, count: 0, scrollWidth: 1, clientWidth: 1, stripWidth: 0, winWidth: 0 };
   let cueText = "";
   let painting = 0;
 
@@ -232,10 +262,11 @@
       win.style.transform = `translateX(${Math.min(x, geo.stripWidth - geo.winWidth).toFixed(1)}px)`;
     }
     if (cue && geo.count) {
-      // k counts sheets from the newest end; a sheet counts once half in view.
-      const at = (px) => Math.round((px - geo.newestLeft) / geo.stride);
-      const first = Math.max(0, Math.min(geo.count - 1, at(left)));
-      const last = Math.max(first, Math.min(geo.count - 1, at(left + geo.clientWidth) - 1));
+      // k counts sheets from the newest end; a sheet counts once its middle
+      // is in view. Two binary searches over the cached midpoints.
+      const n = mids.length;
+      const first = Math.min(n - 1, above(mids, left - 0.5));
+      const last = Math.max(first, Math.min(n - 1, above(mids, left + geo.clientWidth) - 1));
       const hi = geo.count - first;
       const lo = geo.count - last;
       const range = hi === lo ? `Line ${fmt.format(hi)}` : `Lines ${fmt.format(lo)}–${fmt.format(hi)}`;
@@ -252,10 +283,16 @@
 
   const layout = () => {
     const items = list ? list.children : [];
-    const newest = list?.lastElementChild;
     geo.count = items.length;
-    geo.stride = newest?.offsetWidth || 1;
-    geo.newestLeft = newest?.offsetLeft ?? 0;
+    starts = new Float64Array(items.length);
+    ends = new Float64Array(items.length);
+    mids = new Float64Array(items.length);
+    for (let i = 0; i < items.length; i++) {
+      const li = items[items.length - 1 - i];
+      starts[i] = li.offsetLeft;
+      ends[i] = li.offsetLeft + li.offsetWidth;
+      mids[i] = (starts[i] + ends[i]) / 2;
+    }
     geo.scrollWidth = scroller.scrollWidth || 1;
     geo.clientWidth = scroller.clientWidth;
     if (strip && win) {

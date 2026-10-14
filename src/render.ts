@@ -167,6 +167,7 @@ export function renderIndex(colophons: Colophon[], ownToken: string, error?: str
           </div>
           <p class="section-note">Newest at the left; scroll right to read back in time. Nothing written here can be taken back. Tap a seal for its meaning.</p>
           ${legend(colophons)}
+          <p class="visually-hidden" role="status" aria-live="polite" id="scroll-status"></p>
         </section>
         <figure class="tradition">
           <img src="/public/scroll.avif" alt="" />

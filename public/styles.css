@@ -1516,6 +1516,19 @@ body.page-scroll {
   }
 }
 
+/* Forced colours: the chosen ink is otherwise marked only by its own
+   colour, which the system palette replaces. */
+@media (forced-colors: active) {
+  .swatch:has(input:checked) {
+    outline: 3px solid Highlight;
+    outline-offset: 1px;
+  }
+
+  .scroll-overview {
+    forced-color-adjust: none;
+  }
+}
+
 @media (prefers-contrast: more) {
   body,
   .sheet,

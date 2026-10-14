@@ -638,8 +638,18 @@ button {
   cursor: pointer;
 }
 
+button[aria-disabled="true"] {
+  cursor: progress;
+  opacity: 0.75;
+}
+
 button:hover {
   background: #46403a;
+}
+
+.count--over {
+  color: var(--ink);
+  font-weight: bold;
 }
 
 .form-error {
@@ -1213,7 +1223,8 @@ body.page-scroll {
     font-size: 0.8rem;
   }
 
-  .dock:focus-within .count {
+  .dock:focus-within .count,
+  .dock .count--over {
     display: block;
   }
 

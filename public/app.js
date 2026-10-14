@@ -250,7 +250,10 @@
       mirror.scrollTop = textarea.scrollTop;
       if (count) {
         const left = max - textarea.value.length;
-        count.textContent = `${left} of ${max} characters left.`;
+        count.textContent =
+          left >= 0 ? `${left} of ${max} characters left.` : `${-left} ${left === -1 ? "character" : "characters"} over.`;
+        // Over the limit, the count stays visible even with the dock collapsed.
+        count.classList.toggle("count--over", left < 0);
       }
     }
 
@@ -291,9 +294,19 @@
       textarea.setAttribute("aria-describedby", ids.join(" "));
     }
 
+    // Back in the text, next to the error: on a phone that also opens the
+    // dock again, so the whole line and the count are in view.
+    function rejected(message) {
+      showError(message);
+      textarea.focus({ preventScroll: true });
+    }
+
     function accepted(data) {
       clearError();
       say("Your line is written in.");
+      if (document.activeElement === button || document.activeElement === document.body) {
+        textarea.focus({ preventScroll: true });
+      }
       const line = textarea.value;
       const inkKey = form.querySelector("input[name=ink]:checked")?.value;
       const ink = `ink--${inkKey ?? "mo-lan"}`;
@@ -320,7 +333,9 @@
       event.preventDefault();
       if (inFlight) return;
       inFlight = true;
-      button.disabled = true;
+      // Not disabled: a disabled button drops keyboard focus to <body>.
+      // inFlight is the real guard.
+      button.setAttribute("aria-disabled", "true");
       try {
         const res = await fetch(form.action, {
           method: "POST",
@@ -331,17 +346,17 @@
         if (res.status === 201) {
           accepted(await res.json());
         } else if (res.status === 422) {
-          showError((await res.json()).message);
+          rejected((await res.json()).message);
         } else if (res.status === 413) {
-          showError(`Keep it to ${max} characters — the margin is not infinite.`);
+          rejected(`Keep it to ${max} characters — the margin is not infinite.`);
         } else {
-          showError("Something went wrong and nothing was written. Your line is still here; try again.");
+          rejected("Something went wrong and nothing was written. Your line is still here; try again.");
         }
       } catch {
-        showError("Couldn't reach the scroll, so nothing was written. Your line is still here; try again.");
+        rejected("Couldn't reach the scroll, so nothing was written. Your line is still here; try again.");
       } finally {
         inFlight = false;
-        button.disabled = false;
+        button.removeAttribute("aria-disabled");
         for (const data of queued.splice(0)) onLive(data);
       }
     });

@@ -1,7 +1,7 @@
 import { escapeHtml } from "./html.ts";
 import { currentSeal, entrySeal, type Seal } from "./seal.ts";
 import { DEFAULT_INK, INKS } from "./ink.ts";
-import type { SealEntry } from "./dictionary.ts";
+import { THEMES, sealsByTheme, type SealEntry } from "./dictionary.ts";
 import { claimOf, type Colophon } from "./db.ts";
 
 const dateFmt = new Intl.DateTimeFormat("en-AU", {
@@ -240,7 +240,43 @@ export interface SealPage {
   wanted?: string;
   justClaimed?: string;
   released?: boolean;
+  theme?: string;
+  page?: string;
 }
+
+export const SEALS_PER_PAGE = 60;
+
+// A page number from the query string: a small positive integer, else 1.
+function pageNumber(raw: string | undefined, pages: number): number {
+  const n = /^[1-9][0-9]{0,3}$/.test(raw ?? "") ? Number(raw) : 1;
+  return Math.min(n, Math.max(1, pages));
+}
+
+function sealList(all: SealEntry[], page: SealPage, ownGlyph: string | undefined, base: string): string {
+  const pages = Math.ceil(all.length / SEALS_PER_PAGE);
+  const n = pageNumber(page.page, pages);
+  const shown = all.slice((n - 1) * SEALS_PER_PAGE, n * SEALS_PER_PAGE);
+  const link = (to: number, text: string, rel: string) =>
+    `<a href="${base}${to > 1 ? `&amp;page=${to}` : ""}" rel="${rel}">${text}</a>`;
+  const nav =
+    pages > 1
+      ? `<nav class="seal-pages" aria-label="Pages of seals">${n > 1 ? link(n - 1, "← Previous", "prev") : ""}
+            <span>Page ${n} of ${pages}</span>${n < pages ? link(n + 1, "Next →", "next") : ""}</nav>`
+      : "";
+  return `<ul class="seal-results">${shown.map((r) => sealResult(r, page, ownGlyph)).join("")}</ul>${nav}`;
+}
+
+function themeLinks(current: string | undefined): string {
+  return `<nav class="seal-themes" aria-labelledby="themes-heading">
+            <h2 id="themes-heading">Or browse by theme</h2>
+            <ul>${THEMES.map(
+              (t) =>
+                `<li><a href="/seal?theme=${t.key}"${t.key === current ? ` aria-current="page"` : ""}>${escapeHtml(t.name)}</a></li>`,
+            ).join("")}</ul>
+          </nav>`;
+}
+
+const seals = (n: number) => `${countFmt.format(n)} ${n === 1 ? "seal" : "seals"}`;
 
 function sealResult(entry: SealEntry, page: SealPage, ownGlyph: string | undefined): string {
   const label = `<span class="result-glyph" lang="zh-Hant">${entry.glyph}</span> ${escapeHtml(entry.pinyin)}: ${escapeHtml(entry.gloss)}`;
@@ -270,14 +306,20 @@ export function renderSealChooser(page: SealPage): string {
     notice = `<p class="notice" role="status">Seal given up. You sign with your browser's random seal again.</p>`;
   }
 
+  const theme = page.query ? undefined : THEMES.find((t) => t.key === page.theme);
   let results = "";
   if (page.query) {
     results =
       page.results.length > 0
-        ? `<ul class="seal-results">${page.results.map((r) => sealResult(r, page, ownGlyph)).join("")}</ul>`
+        ? `<h2 class="seal-count">${seals(page.results.length)} for “${escapeHtml(page.query)}”</h2>
+          ${sealList(page.results, page, ownGlyph, `/seal?q=${encodeURIComponent(page.query)}`)}`
         : `<p>No seal for that word. Try ${page.suggestions
             .map((w) => `<a href="/seal?q=${encodeURIComponent(w)}">${escapeHtml(w)}</a>`)
             .join(", ")}.</p>`;
+  } else if (theme) {
+    const all = sealsByTheme(theme.key);
+    results = `<h2 class="seal-count">${escapeHtml(theme.name)}: ${seals(all.length)}</h2>
+          ${sealList(all, page, ownGlyph, `/seal?theme=${theme.key}`)}`;
   }
 
   const body = `
@@ -297,6 +339,7 @@ export function renderSealChooser(page: SealPage): string {
               autocomplete="off" spellcheck="true" />
             <button type="submit">Find a seal</button>
           </form>
+          ${themeLinks(theme?.key)}
           ${results}
           ${
             own.chosen

@@ -710,6 +710,42 @@ button:hover {
   color: var(--ink);
 }
 
+.seal-themes h2,
+.seal-count {
+  margin: 1.5rem 0 0.4rem;
+  font-size: 1.1rem;
+}
+
+.seal-themes ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each theme link is a 44px-tall target. */
+.seal-themes a,
+.seal-pages a {
+  display: inline-block;
+  padding-block: 0.65rem;
+}
+
+.seal-themes a[aria-current="page"] {
+  font-weight: bold;
+  text-decoration-thickness: 0.15em;
+}
+
+.seal-pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 1.25rem;
+  margin-top: 0.5rem;
+  color: var(--ink-soft);
+}
+
 .seal-results {
   margin: 0;
   padding: 0;

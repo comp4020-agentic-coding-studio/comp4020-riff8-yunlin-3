@@ -280,6 +280,16 @@
   color: var(--ink-soft);
 }
 
+/* One line on a phone: the cue stretches to the strip's width and tightens. */
+@media (width <= 30rem) {
+  .scroll-cue {
+    margin-inline: 1.1rem;
+    padding-inline: 0.35rem;
+    font-size: 0.78rem;
+    letter-spacing: -0.01em;
+  }
+}
+
 /* A permalinked line: a brief gilt ring, fading. Opacity only. */
 .scroll .colophon--target::after {
   content: "";

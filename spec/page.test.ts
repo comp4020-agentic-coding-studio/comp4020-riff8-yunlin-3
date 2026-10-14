@@ -229,3 +229,36 @@ it("an empty scroll says no one has written yet, inside the scroll", async () =>
   expect(cue.hasAttribute("hidden")).toBe(true);
   expect(strip.getAttribute("aria-hidden")).toBe("true");
 });
+
+// The frontispiece (引首): decoration at the oldest end of the scroll, after
+// the list and inside the scroller, hidden from assistive tech, and dated by
+// the oldest line. Rendered from fixed rows on the scratch database.
+it("the frontispiece sits after the list in the scroll, aria-hidden, begun the oldest line's year", async () => {
+  process.env.DB_PATH = join(scratch, "empty.db");
+  const { renderIndex } = await import("../src/render.ts");
+  const row = (id: number, iso: string) => ({
+    id,
+    token: "00000000-0000-4000-8000-00000000000" + (id % 10),
+    body: `line ${id}`,
+    created_at: Date.parse(iso),
+    seal: null,
+    ink: "mo-lan",
+  });
+  // Oldest first, as listColophons returns them; 2019 is the oldest year.
+  const rows = [row(1, "2019-03-01T00:00:00+11:00"), row(2, "2024-06-01T00:00:00+10:00"), row(3, "2026-10-01T00:00:00+10:00")];
+  const d = doc(renderIndex(rows, "00000000-0000-4000-8000-000000000009"));
+  const frontis = d.querySelectorAll(".yinshou");
+  expect(frontis).toHaveLength(1);
+  const y = frontis[0]!;
+  expect(y.getAttribute("aria-hidden")).toBe("true");
+  expect(y.parentElement!.matches(".scroll")).toBe(true);
+  expect(y.closest(".colophon-list")).toBeNull();
+  expect(y.previousElementSibling!.matches("ol.colophon-list")).toBe(true);
+  expect(y.querySelector(".yinshou-begun")!.textContent!.trim()).toBe("begun 2019");
+  expect(y.querySelector("[tabindex], a, button")).toBeNull();
+  // Midnight on New Year's Day in Canberra is still that year.
+  const edge = doc(renderIndex([row(4, "2020-01-01T00:30:00+11:00")], "00000000-0000-4000-8000-000000000009"));
+  expect(edge.querySelector(".yinshou-begun")!.textContent!.trim()).toBe("begun 2020");
+  // No frontispiece on an empty scroll.
+  expect(doc(renderIndex([], "00000000-0000-4000-8000-000000000009")).querySelector(".yinshou")).toBeNull();
+});

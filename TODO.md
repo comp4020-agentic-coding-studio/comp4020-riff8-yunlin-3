@@ -5,30 +5,42 @@ the same commit as the work.
 
 ## Now
 
-- Crit 9 pod prompt (team run, aimed at crit 10 "Fly by instruments"):
-  M2 in progress: the colophons become a right-to-left handscroll, a fixed
-  writing dock, smooth scrolling, the dictionary to 800+.
+- Nothing in progress. The crit 9 pod prompt (a five-hour team run aimed at
+  crit 10 "Fly by instruments") is done and `prompt.md` is deleted; pick up
+  from Next. The harness pushes this run's commits after it stops, and CI
+  deploys them; until then the live app serves the pre-run version.
 
 ## Next
-
-- [ ] P1 scrolls of ~10,000 lines: fast line-mode wheel and live arrivals
-  still cost 50-90 ms long tasks (2,000 lines are clean). A JS render window
-  fixed the wheel but broke find-in-page and copy, so it was held back
-- [ ] P3 a 320-character line of full-width (Chinese) characters overflows
-  its long sheet; the sheet scrolls but shows no sign of hidden text
 
 - [ ] P1 have a Chinese reader review every row of `src/dictionary.ts` and
   `src/dictionary/*.ts` (glyph, pinyin, gloss, search words), now 885 rows,
   before the seals are trusted
+- [ ] P1 after the harness push and CI deploy, check the live URL: `/`,
+  `/readme/`, `/seal` and `/adr/0002-who-did-what/` answer 200 and `/`
+  carries the handscroll and the dock (read-only; never write to live)
+- [ ] P2 scrolls of ~10,000 lines: glides, the line-mode wheel and live
+  arrivals still cost 50-90 ms long tasks (2,000 lines are clean). Chrome's
+  per-frame check over 10k `content-visibility: auto` sheets is about half
+  the cost. A JS render window fixed the wheel but broke find-in-page and
+  copy, so it was dropped; floating the sheets instead of a flex row cut the
+  insert reflow in a probe and is the next thing to try
+- [ ] P2 one-line notes sit on 480 px sheets, so much of the scroll is empty
+  paper; a crit will ask (it suits Ni Zan, but have the argument ready)
+- [ ] P2 at 200% text size the band's 18rem minimum is taller than the room
+  above the collapsed dock; an em-based cap on short viewports would fix it
 - [ ] P2 a test for the SSE stream cap (200) and the 25 s keepalive; both are
   in `src/live.ts` but untested (see Context)
-- [ ] P3 the spruces in `scripts/paint.py` still read a little like stacked
-  chevrons; softer, more irregular tiers would be closer to the brief's
-  watercolour
+- [ ] P3 under forced colours, the cue's "yours in red" no longer holds
 - [ ] P3 remaining extras not attempted: a cairn whose height tracks the
-  colophon count, and a time-of-day sky tint computed in the browser
+  colophon count, and a time-of-day sky tint (both ruled out by the
+  consultant this run as decoration)
 
 ## Done
+
+- [x] P2 L9: a line too long for its sheet fades at the foot and takes focus
+  so keys scroll it; the dock collapses on short viewports and large text;
+  forced colours keep the chosen ink and the strip; one h1 a page (07f29b9).
+  final-reviewer: GO
 
 - [x] P2 L8: a frontispiece (引首) at the oldest end, 題記 in plain ink with
   the year the scroll was begun; fixed contained sheet widths and arithmetic
@@ -108,12 +120,37 @@ the same commit as the work.
 
 ## Context
 
-- The brief was the pod's crit 8 `prompt.md` (deleted in the last commit),
-  aimed at crit 9 "All at once". Pod run: the harness pushes and CI deploys.
+- The brief was the pod's crit 9 `prompt.md` (deleted in the last commit),
+  aimed at crit 10 "Fly by instruments": a lead agent, a consultant, four
+  builders and five testers, worktrees under `.claude/worktrees/`, nine loop
+  iterations (L1-L9). The run's working files (board, contract, decisions,
+  findings, screenshots) lived in gitignored `.claude/team/` and are gone
+  with the run; the decisions that matter are in `README.md`, `CLAUDE.md`
+  and the ADRs.
+- Decisions that shaped the build: the scroll reads right to left like a
+  real handscroll, newest at the left, and the DOM is newest first
+  (`ol reversed`) so keyboard, screen reader and no-JS reading match the
+  screen; the writing dock is CSS-fixed; logs are logfmt with
+  `who=<glyph>#<6 hex of sha256("colophon-log:"+token)>`, streams counted
+  but never named (ADR 0002); someone else's new line is announced with an
+  excerpt, glyph only while you type; sheets are sized by line length
+  (short/mid/long); a frontispiece (引首) at the oldest end; no "new lines"
+  pill (a notification) and no JS render window (breaks find and copy).
+- Real bugs testers found and fixed, each with a spec or a CLAUDE.md rule:
+  a half-sent request body crashed the server; `?error=constructor` gave an
+  empty reply; the textarea's `maxlength` silently cut a pasted line (the
+  "never auto-truncate" rule); focus dropped to body after a submit; the
+  dock covered focused content; 942 Tab stops through the scroll, starting
+  at the oldest line; Back showed a stale seal from the bfcache; nine wrong
+  dictionary search words and one wrong glyph (淞 for 凇).
+- `memory/` was left alone: in a pod run it belongs to the agent's own
+  ticks, so this hand-off lives here rather than in `memory/now.md`.
 - Local checks: start the app with a scratch DB, e.g.
   `DB_PATH=/tmp/colophon/c.db PORT=8613 node src/server.ts`, then
-  `APP_URL=http://localhost:8613 pnpm check`. Other runs share the machine,
-  so 8080 may be taken; kill your own server by PID only.
+  `APP_URL=http://127.0.0.1:8613 pnpm check`. Other runs share the machine,
+  so ports may be taken; kill your own server by PID only. `scripts/seed.ts`
+  fills a scratch DB (refuses `/data`); reseed rather than reuse a DB that
+  specs have written thousands of lines into, or jsdom tests slow down.
 - SSE: first connect passes `?after=<newest rendered id>`, reconnects use
   `Last-Event-ID`; replay and registration happen in one synchronous turn,
   so no gap. Over 200 missed: a `reload` event. Each stream renders "yours"
@@ -121,21 +158,12 @@ the same commit as the work.
 - The stream cap and keepalive aren't tested: opening 200 streams races
   other spec files' streams, and a keepalive test waits 25 s. An env var to
   lower both in tests would make it cheap.
-- Ink: a missing key means the default; an unknown key is refused
-  (`?error=ink`, or 422 JSON for the script).
 - `POST /colophons` with `Accept: application/json` answers 201 `{id, html,
-  legend}` or 422 `{error, message}`; the plain form gets 303s as before.
+  legend}` or 422 `{error, message}`; the plain form gets a 303 on success
+  and a 422 page with the text kept on a rejection.
 - Seal tests release their claims, so a reused local DB doesn't fill the pool.
-- Client tests (`spec/client.test.ts`) run the served `app.js` in jsdom
-  against the running app with real POSTs and a fake EventSource;
-  `window.colophonConfig.handoffMs` shortens the lantern handoff there.
-- The script reserves the page's own accepted ids until the lantern hands
-  over, and queues live events while a submit is in flight, so the echo
-  never lands early or twice.
-- Decided: the Wang Yi handscroll photo stays, smaller, as "the tradition
-  this margin borrows from"; the watercolour is the mounted painting.
-- Browser checks done: two independent agent-browser sessions (390x844
-  writer, 1920x1080 watcher) saw the line arrive ~60 ms after the click; a
-  server restart with a line written before the page reconnected was
-  replayed via `Last-Event-ID` with no reload; both viewports have no
-  horizontal scroll; reduced motion drops the fan, lanterns and ink-in.
+- Client tests (`spec/client.test.ts`) run the served `scroll.js` and
+  `app.js` in jsdom against the running app, with a fixed fake layout for
+  the scroll; `window.colophonConfig.handoffMs` shortens the lantern handoff.
+- Measured: 0 long tasks and 100% of frames within 60 fps scrolling 2,000
+  lines at 1920 and 390; `/` is 60 kB gzipped at 2,000 lines.

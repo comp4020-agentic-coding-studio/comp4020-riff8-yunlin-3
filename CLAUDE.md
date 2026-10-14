@@ -74,8 +74,10 @@ Plain `node:http` server run directly from `.ts` (Node 24 strips types),
   screen-reader announcements; user text only via `textContent`
 - `public/scroll.js` --- the handscroll's motion on a native scroller: eased
   wheel and keys, arrivals that keep a reader in place, resize that keeps
-  the sheet in view, the overview strip; geometry is measured on layout
-  changes only, and each scroll frame is arithmetic
+  the sheet in view, the overview strip, overflowing bodies made
+  focusable (`data-overflow`) and faded while more is below (`data-more`);
+  geometry is measured on layout changes only, and each scroll frame is
+  arithmetic
 - `public/fan.js` --- loaded in `<head>`; plays the fan once per session
 - `public/styles.css` --- the theme: mount, cloth, inks, dock, lantern, fan
 - `public/scroll.css` --- the handscroll: right-to-left sheets, rollers,
@@ -103,7 +105,8 @@ Plain `node:http` server run directly from `.ts` (Node 24 strips types),
 - `--sheet-short` / `--sheet-mid` / `--sheet-long` fixed sheet widths by
   line length (`scroll.css`); fixed lengths, so every sheet's box is known
   before it renders
-- `--dock-h` the dock's collapsed height, set per breakpoint in CSS and
+- `--dock-h` the dock's collapsed height, set per breakpoint in CSS (width,
+  and an em-based height query for short viewports and large text) and
   refined by `app.js`; `--dock-room` the dock's real, possibly expanded
   height, set by `app.js`. The page's bottom padding and `scroll-padding`
   use `--dock-room`, falling back to `--dock-h` with no script

@@ -95,7 +95,9 @@ Each sheet is sized by its line, the way real colophons were: a short note
 takes a narrow strip, a long one a wide passage. The size is worked out
 from the line's length when the page is drawn, not stored. Each sheet's
 date is a link to that line (`/#c-<id>`), so a line can be shared; opening
-one glides the scroll to it and rings it briefly in gilt.
+one glides the scroll to it and rings it briefly in gilt. A line too long
+for its sheet at your text size fades at the foot while there's more below,
+and can take focus so the arrow keys scroll it.
 
 At the oldest end, past the first line ever written, stands a
 frontispiece. Real handscrolls open with a title inscription, the 引首,
@@ -115,7 +117,9 @@ thing: this line is yours.
 Writing happens in a dock fixed to the bottom of the window, so it is
 always within reach however far back you've read. It is fixed by CSS, so
 it works with JavaScript off, and the page leaves room under itself for
-the dock so nothing you are reading or focused on hides behind it. If a
+the dock so nothing you are reading or focused on hides behind it. On a
+short window --- a phone on its side, large text, 200% zoom --- it folds to
+a single row and opens out while you're writing in it. If a
 line is refused, the dock says why and your text stays in the box, with or
 without a script.
 
@@ -136,7 +140,10 @@ words aren't talked over; a burst of lines is a single count, and your own
 line is confirmed when it's in. Crossing the length limit while typing
 is announced once each way, over and back within it, rather than on every
 keystroke. It never hears who else is reading. Resize the window, or turn
-a phone, and the scroll keeps the sheet you were reading in view.
+a phone, and the scroll keeps the sheet you were reading in view. In
+forced colours (Windows high contrast) the chosen ink is marked in the
+system highlight, and the strip keeps its own colours so your ticks still
+show.
 
 Pages and text files are sent gzipped to any browser that asks, which
 keeps a long scroll quick to arrive on a slow connection. Every sheet has

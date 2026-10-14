@@ -159,25 +159,29 @@ function overview(count: number): string {
 export function renderIndex(colophons: Colophon[], ownToken: string, error?: string, draft?: Draft): string {
   const message = errorMessage(error);
   const own = currentSeal(ownToken, claimOf(ownToken));
-  const lastId = colophons.at(-1)?.id ?? 0;
+  const lastId = colophons.reduce((max, c) => Math.max(max, c.id), 0);
+  // Newest first in the DOM, matching the screen (newest at the left) and
+  // the first Tab into the scroll; db.ts keeps returning oldest first.
+  const newestFirst = [...colophons].reverse();
 
   const body = `
       ${header("a shared margin on one painting", false, true)}
       <main id="main">
         <section class="scroll-section">
           <h2 id="colophons-heading" class="visually-hidden">Colophons</h2>
+          <a class="skip-past" href="#after-scroll">Skip past the scroll</a>
           <div class="handscroll">
             <div class="handscroll-roller handscroll-roller--start" aria-hidden="true"></div>
             <div class="scroll" role="region" aria-labelledby="colophons-heading" tabindex="0" data-scroll>
-              <ol class="colophon-list" data-last-id="${lastId}">
-                ${colophons.map((c) => colophonEntry(c, ownToken)).join("\n                ")}
+              <ol class="colophon-list" reversed data-last-id="${lastId}">
+                ${newestFirst.map((c) => colophonEntry(c, ownToken)).join("\n                ")}
               </ol>
               ${colophons.length === 0 ? `<p class="empty-note">No one has written in the margin yet.</p>` : ""}
             </div>
             <div class="handscroll-roller handscroll-roller--end" aria-hidden="true"></div>
           </div>
           ${overview(colophons.length)}
-          <p class="section-note">Newest at the left; scroll right to read back in time. Nothing written here can be taken back. Tap a seal for its meaning.</p>
+          <p class="section-note" id="after-scroll" tabindex="-1">Newest first, at the left; scroll right to read back in time. Nothing written here can be taken back. Tap a seal for its meaning.</p>
           ${legend(colophons)}
           <p class="visually-hidden" role="status" aria-live="polite" id="scroll-status"></p>
         </section>

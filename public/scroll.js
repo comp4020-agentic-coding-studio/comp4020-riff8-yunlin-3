@@ -169,16 +169,17 @@
 
   const afterArrive = (state, li) => {
     if (!state) return;
-    // The list's width is set by layout(), not by its content, so lay out
-    // now (arithmetic, no per-sheet reads) before measuring the growth.
-    layout();
+    // The list's width is set from the geometry, not by its content, so
+    // update the geometry for this one sheet before measuring the growth.
+    const at = li && list ? Array.prototype.indexOf.call(list.children, li) : -1;
+    if (at >= 0 && width && list.children.length === geo.count + 1) insertAt(at, li);
+    else layout();
     const grew = scroller.scrollWidth - state.scrollWidth;
     if (!state.atNewest) {
       // Reading elsewhere: a sheet inserted before the view's start pushed
       // what's in view right by its width; push the view the same distance,
       // in the same frame. A sheet landing to the right of the view (an own
       // line held back while newer ones arrived) moves nothing in view.
-      const at = li && list ? Array.prototype.indexOf.call(list.children, li) : -1;
       const before = at < 0 || starts[at] < state.scrollLeft;
       if (before) {
         const moving = frame !== 0;
@@ -265,29 +266,6 @@
   let cueText = "";
   let painting = 0;
 
-  // The render window: only sheets within one screen either side of the
-  // view render; the rest stay contained placeholders of known size.
-  // Updated from the cached geometry in the scroll handler itself (no
-  // layout read), so a revealed sheet is ready before the frame paints.
-  let nearLo = 0;
-  let nearHi = -1;
-  const near = () => {
-    if (!list) return;
-    const items = list.children;
-    const n = Math.min(items.length, starts.length);
-    const left = scroller.scrollLeft;
-    const lo = n ? Math.max(0, above(ends, left - geo.clientWidth)) : 0;
-    const hi = n ? Math.min(n - 1, above(starts, left + 2 * geo.clientWidth) - 1) : -1;
-    for (let i = nearLo; i <= Math.min(nearHi, n - 1); i++) {
-      if (i < lo || i > hi) items[i].style.contentVisibility = "";
-    }
-    for (let i = lo; i <= hi; i++) {
-      if (i < nearLo || i > nearHi) items[i].style.contentVisibility = "visible";
-    }
-    nearLo = lo;
-    nearHi = hi;
-  };
-
   const paint = () => {
     painting = 0;
     const left = scroller.scrollLeft;
@@ -336,40 +314,83 @@
     return px;
   };
 
+  // Sheet widths and the list's padding, read once and again only when the
+  // viewport changes (a breakpoint can change them).
+  let width = null;
+  let padL = 0;
+  let padR = 0;
+  const widthOf = (li) => {
+    const c = li.classList;
+    return c.contains("colophon--short") ? width.short : c.contains("colophon--mid") ? width.mid : width.long;
+  };
+  const setListWidth = (x) => {
+    if (!list || !geo.count) return;
+    list.style.width = `${Math.max(x + padR, scroller.clientWidth)}px`;
+    list.dataset.sized = "";
+  };
+
   const layout = () => {
     const items = list ? list.children : [];
     geo.count = items.length;
     starts = new Float64Array(items.length);
     ends = new Float64Array(items.length);
     mids = new Float64Array(items.length);
+    width = sheetWidths();
+    padL = list ? parseFloat(getComputedStyle(list).paddingLeft) || 0 : 0;
+    padR = list ? parseFloat(getComputedStyle(list).paddingRight) || 0 : 0;
     // Geometry by arithmetic, not by asking the browser where each of
     // thousands of sheets is: each sheet's width is fixed by its length
     // class (scroll.css), so positions are a running sum. The list (newest
     // first, D10) reads left to right in DOM order. The sum is then set as
     // the list's own width, which lets scroll.css contain the whole row.
     const n = items.length;
-    const width = sheetWidths();
-    let x = list ? parseFloat(getComputedStyle(list).paddingLeft) || 0 : 0;
+    let x = padL;
     for (let i = 0; i < n; i++) {
-      const c = items[i].classList;
-      const w = c.contains("colophon--short") ? width.short : c.contains("colophon--mid") ? width.mid : width.long;
+      const w = widthOf(items[i]);
       starts[i] = x;
       x += w;
       ends[i] = x;
       mids[i] = x - w / 2;
     }
-    if (list && n) {
-      const total = x + (parseFloat(getComputedStyle(list).paddingRight) || 0);
-      list.style.width = `${Math.max(total, scroller.clientWidth)}px`;
-      list.dataset.sized = "";
-      // Indices may have shifted (an arrival): rebuild the window from scratch.
-      for (let i = nearLo; i <= Math.min(nearHi, n - 1); i++) items[i].style.contentVisibility = "";
-      nearLo = 0;
-      nearHi = -1;
-      geo.clientWidth = scroller.clientWidth;
-      near();
-      list.dataset.windowed = "";
+    setListWidth(x);
+    dress();
+  };
+
+  // One sheet inserted at DOM index i: shift the geometry after it by its
+  // width. No per-sheet DOM reads and no re-reading of widths, so a live
+  // arrival on a 10,000-line scroll costs a typed-array copy.
+  const insertAt = (i, li) => {
+    const n = geo.count + 1;
+    const w = widthOf(li);
+    const grow = (a) => {
+      const b = new Float64Array(n);
+      b.set(a.subarray(0, i), 0);
+      b.set(a.subarray(i), i + 1);
+      return b;
+    };
+    starts = grow(starts);
+    ends = grow(ends);
+    mids = grow(mids);
+    const x = i > 0 ? ends[i - 1] : padL;
+    starts[i] = x;
+    ends[i] = x + w;
+    mids[i] = x + w / 2;
+    for (let k = i + 1; k < n; k++) {
+      starts[k] += w;
+      ends[k] += w;
+      mids[k] += w;
     }
+    geo.count = n;
+    setListWidth(ends[n - 1]);
+    dress();
+  };
+
+  // Everything drawn from the geometry: the strip's window and ticks, the
+  // cue. Reads the scroller's two widths and the strip's, nothing per sheet
+  // but a class check for own lines.
+  const dress = () => {
+    const items = list ? list.children : [];
+    const n = Math.min(items.length, geo.count);
     geo.scrollWidth = scroller.scrollWidth || 1;
     geo.clientWidth = scroller.clientWidth;
     if (strip && win) {
@@ -413,35 +434,61 @@
     if (cue && !geo.count) cueText = "";
     paint();
   };
+  // A full relayout is only needed when the viewport changes (sheet widths
+  // can change at a breakpoint) or the list changes behind our back (a
+  // line placed without afterArrive). An arrival through afterArrive has
+  // already updated the geometry in place.
+  //
+  // Across a viewport change the reader keeps their place: the sheet at
+  // the middle of the view before the change is put back at the middle.
   let laying = 0;
-  const relayout = () => {
+  let anchor = null;
+  const takeAnchor = () => {
+    if (anchor || !geo.count || !list) return;
+    const mid = scroller.scrollLeft + geo.clientWidth / 2;
+    const i = Math.min(geo.count - 1, above(starts, mid) - 1);
+    if (i < 0 || scroller.scrollLeft <= 1) {
+      anchor = { newest: true };
+      return;
+    }
+    anchor = { li: list.children[i], frac: (mid - starts[i]) / (ends[i] - starts[i]) };
+  };
+  const relayout = (force) => {
+    if (force === true) takeAnchor();
     if (!laying)
       laying = requestAnimationFrame(() => {
         laying = 0;
+        const sameList = list && list.children.length === geo.count;
+        const sameView = scroller.clientWidth === geo.clientWidth && (!strip || strip.clientWidth === geo.stripWidth);
+        if (sameList && sameView && !anchor) return;
         layout();
+        if (anchor) {
+          const a = anchor;
+          anchor = null;
+          if (a.newest) scroller.scrollLeft = 0;
+          else {
+            const i = Array.prototype.indexOf.call(list.children, a.li);
+            if (i >= 0) {
+              stop();
+              const mid = starts[i] + a.frac * (ends[i] - starts[i]);
+              scroller.scrollLeft = mid - scroller.clientWidth / 2;
+            }
+          }
+          paint();
+        }
       });
   };
 
-  scroller.addEventListener(
-    "scroll",
-    () => {
-      near();
-      repaint();
-    },
-    { passive: true },
-  );
-  window.addEventListener("resize", relayout, { passive: true });
+  scroller.addEventListener("scroll", repaint, { passive: true });
+  window.addEventListener("resize", () => relayout(true), { passive: true });
   if ("ResizeObserver" in window) {
-    // The list grows on every arrival; the scroller and strip change with
-    // the viewport and the band height.
-    const ro = new ResizeObserver(relayout);
+    // The scroller and strip change with the viewport and the band height.
+    const ro = new ResizeObserver(() => relayout(scroller.clientWidth !== geo.clientWidth));
     ro.observe(scroller);
-    if (list) ro.observe(list);
     if (strip) ro.observe(strip);
   }
-  // An arrival doesn't always resize anything (a short list fills the paper
-  // at min-width: 100%), so watch the list itself for new lines too.
-  if (list && "MutationObserver" in window) new MutationObserver(relayout).observe(list, { childList: true });
+  // A line placed without afterArrive (or removed): catch it on the next frame.
+  if (list && "MutationObserver" in window) new MutationObserver(() => relayout()).observe(list, { childList: true });
   layout();
 
   if (strip) {

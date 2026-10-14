@@ -165,15 +165,6 @@
   contain: strict;
 }
 
-/* With scroll.js, it decides which sheets render: those within a screen
-   of the view get an inline content-visibility: visible. Cheaper than
-   content-visibility: auto, whose per-frame visibility pass over every
-   sheet is what made a 10,000-line scroll stutter. Without the script,
-   auto still applies. */
-.scroll .colophon-list[data-windowed] .colophon {
-  content-visibility: hidden;
-}
-
 .scroll .colophon--short .colophon-body {
   font-size: 1.25em;
   line-height: 1.4;

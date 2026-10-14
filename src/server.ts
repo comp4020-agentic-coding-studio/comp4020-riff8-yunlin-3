@@ -89,6 +89,21 @@ async function readBody(req: import("node:http").IncomingMessage): Promise<strin
   return tooLarge ? undefined : Buffer.concat(chunks).toString("utf8");
 }
 
+const FORM_ERRORS = new Set(["empty", "long", "ink"]);
+
+// The route a failed request was for, named only if it's one this server
+// serves; any other path is client-supplied text and stays out of the log.
+const ROUTES = new Set(["/", "/colophons", "/seal", "/events", "/readme/"]);
+function routeName(rawUrl: string | undefined): string {
+  try {
+    const { pathname } = new URL(rawUrl ?? "/", "http://internal");
+    if (ROUTES.has(pathname)) return pathname;
+    if (/^\/adr\/[a-z0-9-]+\/$/.test(pathname) && ADRS.has(pathname.slice(5, -1))) return "/adr";
+    if (pathname.startsWith("/public/")) return "/public";
+  } catch {}
+  return "?";
+}
+
 // The glyph a visitor signs with right now, before whatever they're doing.
 function actor(token: string): string {
   return who(token, currentSeal(token, claimOf(token)).entry.glyph);
@@ -100,9 +115,13 @@ async function handle(req: import("node:http").IncomingMessage, res: import("nod
   if (setCookie) res.setHeader("Set-Cookie", setCookie);
 
   if (req.method === "GET" && url.pathname === "/") {
-    const error = url.searchParams.get("error");
+    // Only a known error key reaches the page: anything else in ?error= is a
+    // stranger's query string, and "constructor" or "__proto__" would resolve
+    // to an object property rather than a message.
+    const raw = url.searchParams.get("error");
+    const error = raw !== null && FORM_ERRORS.has(raw) ? raw : undefined;
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(renderIndex(listColophons(), token, error ?? undefined));
+    res.end(renderIndex(listColophons(), token, error));
     return;
   }
 
@@ -282,15 +301,11 @@ async function handle(req: import("node:http").IncomingMessage, res: import("nod
 // One error boundary for every request. An async handler's rejection is
 // otherwise unhandled, and Node exits on one: a client that sends half its
 // declared Content-Length and hangs up made the body read throw and took the
-// whole server down for every reader. Logs the path only, never a body,
+// whole server down for every reader. Logs a known route name only, never a body,
 // cookie or query string.
 const server = createServer((req, res) => {
   handle(req, res).catch((err: unknown) => {
-    let path = "?";
-    try {
-      path = new URL(req.url ?? "/", "http://internal").pathname;
-    } catch {}
-    log("error", { path, code: (err as { code?: string })?.code ?? "?" });
+    log("error", { path: routeName(req.url), code: (err as { code?: string })?.code ?? "?" });
     if (!res.headersSent && !res.destroyed) {
       res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
       res.end("server error");

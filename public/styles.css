@@ -909,6 +909,9 @@ footer {
 .lantern-sky {
   position: fixed;
   inset: 0;
+
+  /* Lanterns rise over the page, never over the dock. */
+  bottom: calc(var(--dock-room, 0px) + var(--dock-lift, 0px));
   z-index: 50;
   overflow: hidden;
   pointer-events: none;

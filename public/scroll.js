@@ -110,6 +110,9 @@
 
   scroller.addEventListener("keydown", (event) => {
     if (event.altKey || event.ctrlKey || event.metaKey) return;
+    // Form controls keep their keys. Links and seal summaries inside the
+    // scroll keep Enter and Space (never handled here); arrows, pages,
+    // Home and End still move the scroll from them.
     if (event.target.closest?.("input, textarea, select, button, [contenteditable]")) return;
     const page = scroller.clientWidth * 0.85;
     const moves = {
@@ -290,6 +293,9 @@
       for (const old of strip.querySelectorAll(".scroll-overview-tick")) old.remove();
       strip.append(...ticks);
     }
+    // Rendered hidden on an empty scroll; shown from the first line on.
+    if (strip) strip.hidden = !geo.count;
+    if (cue) cue.hidden = !geo.count;
     if (cue && !geo.count) cueText = "";
     paint();
   };
@@ -312,6 +318,9 @@
     if (list) ro.observe(list);
     if (strip) ro.observe(strip);
   }
+  // An arrival doesn't always resize anything (a short list fills the paper
+  // at min-width: 100%), so watch the list itself for new lines too.
+  if (list && "MutationObserver" in window) new MutationObserver(relayout).observe(list, { childList: true });
   layout();
 
   if (strip) {
@@ -353,6 +362,23 @@
     if (m) toEntry(m[1]);
   };
   window.addEventListener("hashchange", fromHash, { passive: true });
+  // A link to a line already on the page (a sheet's date, a permalink in
+  // the dock's status) glides along the scroll instead of letting the
+  // browser jump the page and the scroller in one step. Modified clicks
+  // (new tab, new window) and links elsewhere are left to the browser.
+  document.addEventListener("click", (event) => {
+    if (event.defaultPrevented || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const a = event.target.closest?.("a[href]");
+    if (!a || a.target) return;
+    const url = new URL(a.href, location.href);
+    const m = /^#c-(\d+)$/.exec(url.hash);
+    if (!m || url.origin !== location.origin || url.pathname !== location.pathname || url.search !== location.search) return;
+    if (!document.getElementById(`c-${m[1]}`)) return;
+    event.preventDefault();
+    if (location.hash !== url.hash) history.pushState(null, "", url.hash);
+    toEntry(m[1]);
+  });
   // After layout settles (fonts, band height), so the centring is right.
   requestAnimationFrame(() => requestAnimationFrame(fromHash));
 

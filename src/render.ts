@@ -148,11 +148,13 @@ export interface Draft {
 const countFmt = new Intl.NumberFormat("en-AU");
 
 // The strip under the scroll and its cue; scroll.js draws the window and
-// rewrites the cue to the lines in view. On an empty scroll both render
-// hidden, and scroll.js reveals them when the first line arrives.
+// rewrites the cue to the lines in view.
 function overview(count: number): string {
+  // The strip only works with script, so it always ships hidden and scroll.js
+  // shows it; the cue's count reads fine without script, so it's hidden only
+  // on an empty scroll.
   const hidden = count === 0 ? " hidden" : "";
-  return `<div class="scroll-overview" aria-hidden="true"${hidden}><div class="scroll-overview-window"></div></div>
+  return `<div class="scroll-overview" aria-hidden="true" hidden><div class="scroll-overview-window"></div></div>
           <p class="scroll-cue"${hidden}>${countFmt.format(count)} ${count === 1 ? "line" : "lines"} · newest at the left</p>`;
 }
 
@@ -208,6 +210,9 @@ export function renderIndex(colophons: Colophon[], ownToken: string, error?: str
 // the scroll's flow, so it never needs a scroll to reach and still works with
 // no script. The error paragraph stays the sibling just before the form,
 // where app.js's showError() puts its own.
+// The textarea has no maxlength: a browser would silently cut a paste to the
+// limit, mid-word. The server is the boundary and rejects an over-long line,
+// keeping the text, so the visitor shortens it themselves.
 function dock(own: Seal, message: string | undefined, draft: Draft | undefined): string {
   const meaning = `${own.entry.glyph}, ${own.entry.pinyin}: ${own.entry.gloss}`;
   const how = own.chosen ? "the seal you chose" : "given to your browser at random";
@@ -217,7 +222,7 @@ function dock(own: Seal, message: string | undefined, draft: Draft | undefined):
       <form method="post" action="/colophons" class="write-form" data-own-seal="${own.entry.glyph}">
         <label for="body" class="visually-hidden">A line for the margin</label>
         <div class="inkwell">
-          <textarea id="body" name="body" maxlength="${MAX_BODY_LENGTH}" rows="2" required${message ? " autofocus" : ""}
+          <textarea id="body" name="body" data-max="${MAX_BODY_LENGTH}" rows="2" required${message ? " autofocus" : ""}
             placeholder="A line for the margin…"
             aria-describedby="body-count${message ? " form-error" : ""}">${draft?.body ? `\n${escapeHtml(draft.body)}` : ""}</textarea>
         </div>

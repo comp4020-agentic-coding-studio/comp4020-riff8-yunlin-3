@@ -1,9 +1,10 @@
 /* The handscroll on /: the colophon list laid out as one long sheet of
    paper, mounted on silk between two wooden rollers. Newest at the left,
-   reading back in time to the right (docs: README, decisions D1).
+   reading back in time to the right (docs: README, decisions D1, D10).
 
-   The scroller is a plain LTR overflow-x block and the list is flex
-   row-reverse, so scrollLeft 0 is the newest end with or without script.
+   The scroller is a plain LTR overflow-x block and the list is newest
+   first in the DOM, laid out as a flex row, so scrollLeft 0 is the newest
+   end with or without script, and Tab order runs newest to oldest.
    public/scroll.js only enhances: eased wheel, keys, jumps, and keeping a
    reader's place when a line arrives.
 
@@ -104,7 +105,7 @@
 
 .scroll .colophon-list {
   display: flex;
-  flex-direction: row-reverse;
+  flex-direction: row;
   align-items: stretch;
   justify-content: flex-start;
   width: max-content;

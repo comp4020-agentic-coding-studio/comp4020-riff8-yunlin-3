@@ -8,3 +8,10 @@ try {
 } catch {
   // storage blocked: let it play
 }
+
+// /seal and / say which seal this browser holds. A page restored from the
+// back-forward cache would show the seal from before a claim, so a restored
+// page reloads; a reload is a fresh load (persisted false), so it can't loop.
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) location.reload();
+});

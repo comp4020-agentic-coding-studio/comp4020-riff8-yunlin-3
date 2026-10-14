@@ -94,7 +94,7 @@ export function inkClass(key: string | null): string {
 
 export function colophonEntry(c: Colophon, ownToken: string): string {
   const mine = c.token === ownToken;
-  return `<li class="colophon ${inkClass(c.ink)}${mine ? " colophon--mine" : ""}" id="c-${c.id}" data-id="${c.id}">
+  return `<li class="colophon colophon--${c.body.length <= 60 ? "short" : c.body.length <= 160 ? "mid" : "long"} ${inkClass(c.ink)}${mine ? " colophon--mine" : ""}" id="c-${c.id}" data-id="${c.id}">
         <p class="colophon-body">${escapeHtml(c.body)}</p>
         <div class="colophon-foot">
           <p class="colophon-date"><a class="colophon-link" href="/#c-${c.id}">${dateFmt.format(new Date(c.created_at))}</a>${mine ? " — yours" : ""}</p>

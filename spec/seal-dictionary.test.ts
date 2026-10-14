@@ -3,8 +3,8 @@ import { DICTIONARY, THEMES, searchSeals, sealsByTheme, suggestWords } from "../
 import { HASH_GLYPHS } from "../src/seal.ts";
 
 // prompt.md §8 T4: the dictionary grows to at least 800 entries, at most
-// 2,000. The first batch lands at M1 with at least 450; raised to 800 at M2.
-const MIN_ENTRIES = 450;
+// 2,000.
+const MIN_ENTRIES = 800;
 const MAX_ENTRIES = 2000;
 
 it("every dictionary glyph has a pinyin, a gloss, search words and a theme, and appears once", () => {

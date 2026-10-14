@@ -91,6 +91,10 @@ body {
   line-height: 1.55;
   background: radial-gradient(ellipse at 50% 30%, #e4e0d4, #d3cdbe);
   background-attachment: fixed;
+
+  /* The wall runs to the bottom of the window on short pages too. */
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 a {
@@ -524,6 +528,11 @@ textarea {
   color: var(--entry-ink);
 }
 
+textarea::placeholder {
+  color: var(--ink-soft);
+  opacity: 1;
+}
+
 .inkwell-mirror {
   position: absolute;
   inset: 0;
@@ -640,6 +649,18 @@ button {
   color: var(--paper);
   width: fit-content;
   cursor: pointer;
+}
+
+/* A secondary action, quieter than the primary: giving up a seal. */
+.button-quiet {
+  border-color: var(--ink-soft);
+  background: transparent;
+  color: var(--ink);
+}
+
+.button-quiet:hover {
+  background: var(--paper-shade);
+  color: var(--ink);
 }
 
 button[aria-disabled="true"] {
@@ -1008,6 +1029,12 @@ footer {
   .page-scroll .seal-legend,
   .tradition {
     margin-inline: 0.5rem;
+  }
+
+  /* On a first phone screen the scroll and its cue fill the room above the
+     dock; the note starts below the fold rather than being sliced by it. */
+  .page-scroll .section-note {
+    margin-top: 3rem;
   }
 
   .tradition img {

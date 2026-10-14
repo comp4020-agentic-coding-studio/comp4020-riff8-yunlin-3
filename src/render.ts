@@ -212,7 +212,7 @@ function dock(own: Seal, message: string | undefined, draft: Draft | undefined):
       <form method="post" action="/colophons" class="write-form" data-own-seal="${own.entry.glyph}">
         <label for="body" class="visually-hidden">A line for the margin</label>
         <div class="inkwell">
-          <textarea id="body" name="body" maxlength="${MAX_BODY_LENGTH}" rows="2" required
+          <textarea id="body" name="body" maxlength="${MAX_BODY_LENGTH}" rows="2" required${message ? " autofocus" : ""}
             placeholder="A line for the margin…"
             aria-describedby="body-count${message ? " form-error" : ""}">${draft?.body ? `\n${escapeHtml(draft.body)}` : ""}</textarea>
         </div>
@@ -302,7 +302,7 @@ export function renderSealChooser(page: SealPage): string {
             own.chosen
               ? `<form method="post" action="/seal" class="release-form">
             <input type="hidden" name="glyph" value="" />
-            <button type="submit">Give up <span lang="zh-Hant">${own.entry.glyph}</span></button>
+            <button type="submit" class="button-quiet">Give up <span lang="zh-Hant">${own.entry.glyph}</span></button>
           </form>`
               : ""
           }

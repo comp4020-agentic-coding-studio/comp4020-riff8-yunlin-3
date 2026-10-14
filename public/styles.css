@@ -492,7 +492,9 @@ figcaption {
 }
 
 .seal-legend summary {
-  display: inline-block;
+  display: list-item;
+  list-style-position: inside;
+  width: fit-content;
   min-height: 2.75rem;
   padding-block: 0.6rem;
   font-size: 1rem;
@@ -500,17 +502,10 @@ figcaption {
   cursor: pointer;
 }
 
-.seal-legend summary::before {
-  content: "▸ ";
+/* The native disclosure marker: not part of the summary's accessible name,
+   unlike text or ::before content. */
+.seal-legend summary::marker {
   color: var(--ink-soft);
-}
-
-.seal-legend[open] summary::before {
-  content: "▾ ";
-}
-
-.seal-legend summary::-webkit-details-marker {
-  display: none;
 }
 
 .seal-legend ul {

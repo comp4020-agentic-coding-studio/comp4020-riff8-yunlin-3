@@ -1385,11 +1385,12 @@ body.page-scroll {
   }
 }
 
-/* Phone: compact until focused. One line of text, five 44px ink chips
-   beside the button, the seal line under them. Focus anywhere in the dock
-   opens the text to three lines and shows the count beside the seal line;
-   the rows below the button keep their height, so it stays put. */
-@media (width < 48rem) {
+/* Phone, or any short viewport (em-based, so large text or zoom counts):
+   compact until focused. One line of text, five 44px ink chips beside the
+   button, the seal line under them. Focus anywhere in the dock opens the
+   text to three lines and shows the count beside the seal line; the rows
+   below the button keep their height, so it stays put. */
+@media (width < 48rem), (height < 40em) {
   :root {
     --dock-h: 9.25rem;
   }
@@ -1458,6 +1459,41 @@ body.page-scroll {
   .dock-seal {
     justify-self: start;
     font-size: 0.8rem;
+  }
+}
+
+/* Short viewports (landscape phones, large text or 200% zoom): one row,
+   text, chips, button. The seal line and count come back while writing,
+   when focus is in the dock; the Change link follows the text in Tab
+   order, so it's shown by the time Tab reaches it. */
+@media (height < 40em) and (width >= 34em) {
+  :root {
+    --dock-h: 4.5rem;
+  }
+
+  .dock {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "error error error"
+      "well inks button"
+      "seal seal count";
+    padding-block: 0.5rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .dock-seal,
+  .dock .count {
+    display: none;
+  }
+
+  .dock:focus-within .dock-seal,
+  .dock:focus-within .count,
+  .dock .count--over {
+    display: block;
+  }
+
+  .dock:focus-within textarea {
+    min-height: 2.75rem;
+    max-height: 5.6rem;
   }
 }
 

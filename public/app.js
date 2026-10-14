@@ -211,14 +211,23 @@
       if (!error) {
         error = document.createElement("p");
         error.className = "form-error";
+        error.id = "form-error";
         error.setAttribute("role", "alert");
         form.before(error);
       }
       error.textContent = message;
+      describedBy(true);
     }
 
     function clearError() {
       form.parentElement.querySelector(".form-error")?.remove();
+      describedBy(false);
+    }
+
+    function describedBy(withError) {
+      const ids = (textarea.getAttribute("aria-describedby") ?? "").split(/\s+/).filter((id) => id && id !== "form-error");
+      if (withError) ids.push("form-error");
+      textarea.setAttribute("aria-describedby", ids.join(" "));
     }
 
     function accepted(data) {

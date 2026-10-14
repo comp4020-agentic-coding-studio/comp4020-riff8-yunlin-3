@@ -118,8 +118,8 @@ Writing happens in a dock fixed to the bottom of the window, so it is
 always within reach however far back you've read. It is fixed by CSS, so
 it works with JavaScript off, and the page leaves room under itself for
 the dock so nothing you are reading or focused on hides behind it. On a
-short window --- a phone on its side, large text, 200% zoom --- it folds to
-a single row and opens out while you're writing in it. If a
+short window --- a phone on its side, large text, 200% zoom --- it folds
+down to one compact row and opens out while you're writing in it. If a
 line is refused, the dock says why and your text stays in the box, with or
 without a script.
 

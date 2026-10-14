@@ -46,3 +46,9 @@ it("var(--seal) marks only a colophon that belongs to the current browser", () =
 it("the overview ticks are the one --seal use in the handscroll's stylesheet", () => {
   expect(sealSelectors("public/scroll.css")).toEqual([".scroll-overview-tick"]);
 });
+
+it("the frontispiece never uses the accent: red still means only yours", () => {
+  for (const file of sheets) {
+    for (const selector of sealSelectors(file)) expect(selector, file).not.toMatch(/yinshou/);
+  }
+});

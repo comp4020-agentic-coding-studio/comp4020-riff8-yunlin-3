@@ -167,11 +167,14 @@
     const root = document.documentElement;
     if (typeof ResizeObserver === "function") {
       new ResizeObserver(() => {
-        // The collapsed height only: a focused dock grows over the page for
-        // as long as the visitor is writing, rather than reflowing the
-        // scroll under them.
-        if (dockEl.matches(":focus-within")) return;
-        root.style.setProperty("--dock-h", `${dockEl.offsetHeight}px`);
+        const h = dockEl.offsetHeight;
+        // The page's bottom room follows the dock's real height, expanded
+        // too, so nothing at the end of the page is ever unreachable; it only
+        // adds space below the last content, so nothing above moves.
+        root.style.setProperty("--dock-room", `${h}px`);
+        // --dock-h stays the collapsed height: a focused dock grows over the
+        // scroll for as long as the visitor is writing, rather than resizing it.
+        if (!dockEl.matches(":focus-within")) root.style.setProperty("--dock-h", `${h}px`);
       }).observe(dockEl);
     }
     const vv = window.visualViewport;

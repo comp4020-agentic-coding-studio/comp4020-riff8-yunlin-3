@@ -77,6 +77,10 @@
 
 html {
   background: #dcd7ca;
+
+  /* Anything scrolled into view (focus, a #fragment) lands clear of the
+     fixed dock. */
+  scroll-padding-bottom: calc(var(--dock-room, var(--dock-h)) + var(--dock-safe) + 1rem);
 }
 
 /* The wall the scroll hangs on: quiet plaster, so the silk reads as cloth. */
@@ -1016,7 +1020,7 @@ footer {
    silk; the body is padded by --dock-h so nothing stays covered. Grows
    upward only, so the button never moves under a finger mid-tap. */
 body.page-scroll {
-  padding-bottom: calc(var(--dock-h) + var(--dock-safe) + 0.75rem);
+  padding-bottom: calc(var(--dock-room, var(--dock-h)) + var(--dock-safe) + 0.75rem);
 }
 
 .dock {

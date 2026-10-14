@@ -95,7 +95,7 @@ it("an accepted line launches exactly one lantern carrying it, then appears exac
 it("a refused line launches nothing and leaves the typed text where it was", async () => {
   const { document } = await openPage();
   type(document, "   ");
-  // Bypass the browser's own required/maxlength checks the way a real
+  // Bypass the browser's own required check the way a real
   // refusal would arrive: from the server.
   document.querySelector("textarea")!.removeAttribute("required");
   const before = document.querySelectorAll("li.colophon").length;
@@ -490,4 +490,48 @@ it("Back after following a date link returns the scroll to where you were", asyn
   expect(window.location.hash).toBe("");
   expect(Math.round(scroller.scrollLeft)).toBe(where);
   expect(errors).toEqual([]);
+});
+
+// N1: with no maxlength, a pasted line over the limit stays whole; the count
+// says how far over, the field is marked invalid, and the server refuses it
+// with the text still in the box for the visitor to shorten.
+it("a pasted 321-character line is kept whole, counted as over, and refused with the text kept", async () => {
+  const { document } = await openPage();
+  const textarea = document.querySelector<HTMLTextAreaElement>("#body")!;
+  const line = marker("paste").padEnd(321, "z");
+  type(document, line);
+  expect(textarea.value).toHaveLength(321);
+  expect(document.querySelector("#body-count")!.textContent).toBe("1 character over.");
+  expect(textarea.getAttribute("aria-invalid")).toBe("true");
+  type(document, line.slice(0, 320));
+  expect(document.querySelector("#body-count")!.textContent).toBe("0 of 320 characters left.");
+  expect(textarea.hasAttribute("aria-invalid")).toBe(false);
+  type(document, line);
+  document.querySelector<HTMLFormElement>(".write-form")!.requestSubmit();
+  await until(() => document.querySelector(".form-error"));
+  expect(document.querySelector(".form-error")!.textContent).toMatch(/320/);
+  expect(textarea.value).toBe(line);
+  expect(document.querySelectorAll(".lantern")).toHaveLength(0);
+});
+
+// U4: a page restored from the back-forward cache would show the seal from
+// before a claim, so fan.js reloads it; a fresh load (persisted false) never
+// reloads, so it can't loop. jsdom doesn't implement navigation and reports
+// each attempt as a "jsdomError", which is how a reload is counted here.
+it("a page restored from the back-forward cache reloads, and a fresh one doesn't", async () => {
+  const fan = await (await fetch(new URL("/public/fan.js", baseUrl))).text();
+  for (const persisted of [true, false]) {
+    const navigations: string[] = [];
+    const virtualConsole = new VirtualConsole();
+    virtualConsole.on("jsdomError", (e) => {
+      if (/navigation/i.test(String(e.message ?? e))) navigations.push(String(e.message));
+    });
+    const dom = new JSDOM("<!doctype html><title>x</title>", { url: baseUrl, runScripts: "outside-only", virtualConsole });
+    dom.window.eval(fan);
+    const event = new dom.window.Event("pageshow");
+    Object.defineProperty(event, "persisted", { value: persisted });
+    dom.window.dispatchEvent(event);
+    expect(navigations.length, `persisted=${persisted}`).toBe(persisted ? 1 : 0);
+    dom.window.close();
+  }
 });

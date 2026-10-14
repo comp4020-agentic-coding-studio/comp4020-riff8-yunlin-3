@@ -115,7 +115,10 @@ it("the overview strip is hidden from assistive tech and nothing in it takes foc
   const d = doc(await page("/"));
   const strip = d.querySelector(".scroll-overview")!;
   expect(strip, "expected the overview strip on a scroll with lines").toBeTruthy();
-  expect(strip.hasAttribute("hidden")).toBe(false);
+  // N2: the strip only works with script, so it always ships hidden and
+  // scroll.js shows it; the cue's count reads without script, so it shows.
+  expect(strip.hasAttribute("hidden")).toBe(true);
+  expect(d.querySelector(".scroll-cue")!.hasAttribute("hidden")).toBe(false);
   expect(strip.getAttribute("aria-hidden")).toBe("true");
   expect(strip.hasAttribute("tabindex")).toBe(false);
   expect(strip.querySelector("[tabindex], a[href], button, input, select, textarea, summary")).toBeNull();
@@ -187,6 +190,20 @@ it("a keyboard user can skip past the scroll, to a target that exists and takes 
   expect(target.closest(".scroll")).toBeNull();
   const focusable = target.matches("a[href], button, input, select, textarea, summary") || target.hasAttribute("tabindex");
   expect(focusable).toBe(true);
+});
+
+// N1, a real bug (CLAUDE.md: never auto-truncate): maxlength made the
+// browser silently cut a pasted line to 320 characters, mid-word. The server
+// is the only limit; the box takes whatever is pasted.
+it("the text box has no maxlength, on the page and on a refusal", async () => {
+  const cookie = await newVisitor();
+  const box = doc(await page("/", cookie)).querySelector("form.write-form textarea[name=body]")!;
+  expect(box.hasAttribute("maxlength")).toBe(false);
+  const refused = await post("/colophons", { body: "x".repeat(321) }, cookie);
+  expect(refused.status).toBe(422);
+  const kept = doc(await refused.text()).querySelector<HTMLTextAreaElement>("form.write-form textarea[name=body]")!;
+  expect(kept.hasAttribute("maxlength")).toBe(false);
+  expect(kept.value).toHaveLength(321);
 });
 
 // An empty scroll can't be produced on the shared database, so this renders

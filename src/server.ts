@@ -14,7 +14,7 @@ import {
 } from "./render.ts";
 import { renderMarkdown } from "./markdown.ts";
 import { broadcast, openStream, setEntryRenderer } from "./live.ts";
-import { inkKey } from "./ink.ts";
+import { DEFAULT_INK, inkKey } from "./ink.ts";
 import { lookupGlyph, searchSeals, suggestWords } from "./dictionary.ts";
 import { currentSeal, entrySeal } from "./seal.ts";
 import { log, who } from "./log.ts";
@@ -117,8 +117,12 @@ async function handle(req: import("node:http").IncomingMessage, res: import("nod
         res.writeHead(422, { "Content-Type": "application/json; charset=utf-8" });
         res.end(JSON.stringify({ error, message: errorMessage(error) }));
       } else {
-        res.writeHead(303, { Location: `/?error=${error}` });
-        res.end();
+        // Without JavaScript, a redirect would lose what they wrote. Answer
+        // with the page itself, the text back in the box (escaped by
+        // renderIndex) and their ink still chosen, so they can fix and resend.
+        const draft = { body: (params.get("body") ?? "").slice(0, 2000), ink: ink ?? DEFAULT_INK };
+        res.writeHead(422, { "Content-Type": "text/html; charset=utf-8" });
+        res.end(renderIndex(listColophons(), token, error, draft));
       }
       return;
     }
@@ -144,6 +148,13 @@ async function handle(req: import("node:http").IncomingMessage, res: import("nod
       res.writeHead(303, { Location: "/" });
       res.end();
     }
+    return;
+  }
+
+  // A 422 page leaves /colophons in the address bar; a reload there is a GET.
+  if (req.method === "GET" && url.pathname === "/colophons") {
+    res.writeHead(303, { Location: "/" });
+    res.end();
     return;
   }
 

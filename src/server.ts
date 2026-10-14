@@ -16,7 +16,8 @@ import { renderMarkdown } from "./markdown.ts";
 import { broadcast, openStream, setEntryRenderer } from "./live.ts";
 import { inkKey } from "./ink.ts";
 import { lookupGlyph, searchSeals, suggestWords } from "./dictionary.ts";
-import { entrySeal } from "./seal.ts";
+import { currentSeal, entrySeal } from "./seal.ts";
+import { log, who } from "./log.ts";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const README = readFileSync("README.md", "utf8");
@@ -71,7 +72,12 @@ async function readBody(req: import("node:http").IncomingMessage): Promise<strin
   return tooLarge ? undefined : Buffer.concat(chunks).toString("utf8");
 }
 
-const server = createServer(async (req, res) => {
+// The glyph a visitor signs with right now, before whatever they're doing.
+function actor(token: string): string {
+  return who(token, currentSeal(token, claimOf(token)).entry.glyph);
+}
+
+async function handle(req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse): Promise<void> {
   const url = new URL(req.url ?? "/", "http://internal");
   const { token, setCookie } = sealToken(req.headers.cookie);
   if (setCookie) res.setHeader("Set-Cookie", setCookie);
@@ -91,6 +97,7 @@ const server = createServer(async (req, res) => {
   if (req.method === "POST" && url.pathname === "/colophons") {
     const raw = await readBody(req);
     if (raw === undefined) {
+      log("colophon.rejected", { who: actor(token), reason: "too-large" });
       res.writeHead(413, { "Content-Type": "text/plain; charset=utf-8" });
       res.end("payload too large");
       return;
@@ -105,6 +112,7 @@ const server = createServer(async (req, res) => {
     else if (ink === undefined) error = "ink";
 
     if (error) {
+      log("colophon.rejected", { who: actor(token), reason: error, len: body.length });
       if (wantsJson(req)) {
         res.writeHead(422, { "Content-Type": "application/json; charset=utf-8" });
         res.end(JSON.stringify({ error, message: errorMessage(error) }));
@@ -118,7 +126,9 @@ const server = createServer(async (req, res) => {
     // The seal in force right now is snapshotted onto the row; the live event
     // goes out from this same path, after the insert, so only a confirmed
     // colophon ever travels.
+    const writer = actor(token);
     const colophon = addColophon(token, body, claimOf(token) ?? null, ink!);
+    log("colophon.written", { who: writer, id: colophon.id, ink: ink!, len: body.length });
     broadcast(colophon);
 
     if (wantsJson(req)) {
@@ -174,15 +184,22 @@ const server = createServer(async (req, res) => {
 
     // Glyphs only ever come from the dictionary; Location headers are
     // percent-encoded, since a raw non-ASCII header value throws in node:http.
+    // A client's unknown glyph is never logged; a dictionary glyph is safe to.
+    const visitor = actor(token);
     let location: string;
     if (glyph === "") {
+      const held = claimOf(token);
       releaseSeal(token);
+      if (held) log("seal.released", { who: visitor, seal: held });
       location = "/seal?released=1";
     } else if (!lookupGlyph(glyph)) {
+      log("seal.refused", { who: visitor, reason: "unknown" });
       location = `/seal?q=${q}&error=unknown`;
     } else if (claimSeal(token, glyph) === "claimed") {
+      log("seal.claimed", { who: visitor, seal: glyph });
       location = `/seal?claimed=${encodeURIComponent(glyph)}`;
     } else {
+      log("seal.refused", { who: visitor, reason: "taken", seal: glyph });
       location = `/seal?q=${q}&error=taken&glyph=${encodeURIComponent(glyph)}`;
     }
     res.writeHead(303, { Location: location });
@@ -224,6 +241,27 @@ const server = createServer(async (req, res) => {
 
   res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
   res.end("not found");
+}
+
+// One error boundary for every request. An async handler's rejection is
+// otherwise unhandled, and Node exits on one: a client that sends half its
+// declared Content-Length and hangs up made the body read throw and took the
+// whole server down for every reader. Logs the path only, never a body,
+// cookie or query string.
+const server = createServer((req, res) => {
+  handle(req, res).catch((err: unknown) => {
+    let path = "?";
+    try {
+      path = new URL(req.url ?? "/", "http://internal").pathname;
+    } catch {}
+    log("error", { path, code: (err as { code?: string })?.code ?? "?" });
+    if (!res.headersSent && !res.destroyed) {
+      res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("server error");
+    } else if (!res.writableEnded) {
+      res.destroy();
+    }
+  });
 });
 
 server.listen(PORT, "0.0.0.0", () => {

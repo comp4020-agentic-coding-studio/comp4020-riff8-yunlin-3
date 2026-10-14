@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { colophonsAfter, type Colophon } from "./db.ts";
+import { log } from "./log.ts";
 
 // One server-sent-events stream per open page. Only confirmed colophons ever
 // travel here: addColophon's caller broadcasts after the insert succeeds, so
@@ -47,6 +48,7 @@ function lastSeen(req: IncomingMessage, url: URL): number | undefined {
 
 export function openStream(req: IncomingMessage, res: ServerResponse, url: URL, token: string): void {
   if (streams.size >= MAX_STREAMS) {
+    log("stream.refused", { open: streams.size });
     res.writeHead(503, { "Content-Type": "text/plain; charset=utf-8", "Retry-After": "30" });
     res.end("too many open pages; reload later");
     return;
@@ -71,9 +73,12 @@ export function openStream(req: IncomingMessage, res: ServerResponse, url: URL, 
   }
 
   const stream: Stream = { res, token };
+  // Counts only: opening a page is reading, not acting, so streams carry no
+  // visitor (a list of who's reading is the presence record Colophon refuses).
   streams.add(stream);
+  log("stream.opened", { open: streams.size });
   const drop = (): void => {
-    streams.delete(stream);
+    if (streams.delete(stream)) log("stream.closed", { open: streams.size });
   };
   req.on("close", drop);
   res.on("error", drop);
